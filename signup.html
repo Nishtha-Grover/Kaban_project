@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | FlowForge</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card" style="padding:32px;width:min(420px,94vw);border-radius:22px;">
+            <a class="brand" href="index.html" style="justify-content:center;margin-bottom:24px;"><span class="brand-mark">F</span><span>FlowForge</span></a>
+            <div style="text-align:center;margin-bottom:24px;">
+                <span class="eyebrow">GET STARTED</span>
+                <h2 style="margin:8px 0 6px;">Create your workspace</h2>
+                <p style="margin:0;color:var(--muted);font-size:12px;">No server required — this classroom version uses LocalStorage.</p>
+            </div>
+            <form id="signup-form" style="display:grid;gap:14px;">
+                <div class="form-group"><label for="username">Username</label><input type="text" id="username" required autocomplete="username" placeholder="Minimum 3 characters"></div>
+                <div class="form-group"><label for="password">Password</label><input type="password" id="password" required autocomplete="new-password" placeholder="Minimum 3 characters"></div>
+                <div id="auth-error" class="error-msg hidden"></div>
+                <button type="submit" class="primary" style="width:100%;">Create account</button>
+            </form>
+            <p style="text-align:center;margin:18px 0 0;color:var(--muted);font-size:12px;">Already have an account? <a href="login.html" style="color:var(--primary);font-weight:700;">Log in</a></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireNoAuth, registerUser } from './js/auth.js';
+        requireNoAuth();
+        const form = document.getElementById('signup-form');
+        const errorMsg = document.getElementById('auth-error');
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            errorMsg.classList.add('hidden');
+            const result = registerUser(document.getElementById('username').value, document.getElementById('password').value);
+            if (result.success) window.location.href = 'board.html';
+            else { errorMsg.textContent = result.error; errorMsg.classList.remove('hidden'); }
+        });
+    </script>
+</body>
+</html>
