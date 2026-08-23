@@ -1,0 +1,58 @@
+[
+  {
+    "title": "Complete DSA Assignment",
+    "description": "Finish linked list and stack questions",
+    "category": "Assignment",
+    "priority": "high",
+    "course": "DSA"
+  },
+  {
+    "title": "Prepare JavaScript CA",
+    "description": "Revise DOM, events, Fetch API and LocalStorage",
+    "category": "Exam",
+    "priority": "high",
+    "course": "JavaScript"
+  },
+  {
+    "title": "Revise DNN Notes",
+    "description": "Complete two lectures and revise important concepts",
+    "category": "Revision",
+    "priority": "medium",
+    "course": "DNN"
+  },
+  {
+    "title": "Submit CNDC Lab File",
+    "description": "Complete pending practicals and submit lab file",
+    "category": "Lab",
+    "priority": "high",
+    "course": "CNDC"
+  },
+  {
+    "title": "Prepare Viva Questions",
+    "description": "Prepare project workflow and important viva questions",
+    "category": "Viva",
+    "priority": "medium",
+    "course": "Project"
+  },
+  {
+    "title": "Complete LeetCode Practice",
+    "description": "Solve 5 DSA problems",
+    "category": "Coding Practice",
+    "priority": "medium",
+    "course": "DSA"
+  },
+  {
+    "title": "Prepare Project Presentation",
+    "description": "Finish PPT and practice presentation",
+    "category": "Presentation",
+    "priority": "high",
+    "course": "Project"
+  },
+  {
+    "title": "Finish Project Documentation",
+    "description": "Update README and project workflow",
+    "category": "Project",
+    "priority": "medium",
+    "course": "Project"
+  }
+]
