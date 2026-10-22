@@ -16,11 +16,21 @@ const SESSION_KEY = 'kanban-session';
  */
 function getUsers() {
     try {
-        const users = localStorage.getItem(USERS_KEY);
-        return users ? JSON.parse(users) : {};
+        const saved = localStorage.getItem(USERS_KEY);
+        if (saved === null) return Object.create(null);
+        const users = JSON.parse(saved);
+        if (!users || typeof users !== 'object' || Array.isArray(users)) {
+            throw new Error('Invalid account storage');
+        }
+        for (const [name, user] of Object.entries(users)) {
+            if (!user || typeof user !== 'object' || user.username !== name || typeof user.password !== 'string') {
+                throw new Error('Invalid account record');
+            }
+        }
+        return Object.assign(Object.create(null), users);
     } catch (e) {
-        console.warn("Failed to parse users from localStorage", e);
-        return {};
+        // Do not replace unreadable existing accounts with an empty registry.
+        throw new Error('Saved accounts could not be read. Check browser storage settings. Existing data has not been replaced.');
     }
 }
 
@@ -46,7 +56,12 @@ export function registerUser(username, password) {
     }
 
     const trimmedUsername = username.trim();
-    const users = getUsers();
+    let users;
+    try {
+        users = getUsers();
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 
     if (users[trimmedUsername]) {
         return { success: false, error: 'Username already exists. Please choose another.' };
@@ -58,12 +73,16 @@ export function registerUser(username, password) {
         createdAt: new Date().toISOString()
     };
 
-    saveUsers(users);
-    
-    // Automatically log in after registration
-    loginUser(trimmedUsername, password);
-    
-    return { success: true };
+    try {
+        saveUsers(users);
+    } catch {
+        return { success: false, error: 'Account could not be saved. Browser storage may be full or disabled. Please try again.' };
+    }
+    const session = loginUser(trimmedUsername, password);
+    if (!session.success) {
+        return { success: false, error: 'Your account was saved, but sign-in failed. Enable browser storage and log in with this account.' };
+    }
+    return session;
 }
 
 /**
@@ -74,7 +93,12 @@ export function registerUser(username, password) {
  */
 export function loginUser(username, password) {
     const trimmedUsername = (username || '').trim();
-    const users = getUsers();
+    let users;
+    try {
+        users = getUsers();
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
     const user = users[trimmedUsername];
 
     if (!user) {
@@ -86,7 +110,11 @@ export function loginUser(username, password) {
     }
 
     // Set active session
-    localStorage.setItem(SESSION_KEY, trimmedUsername);
+    try {
+        localStorage.setItem(SESSION_KEY, trimmedUsername);
+    } catch {
+        return { success: false, error: 'Could not save your login session. Enable browser storage and try again.' };
+    }
     return { success: true };
 }
 
@@ -124,5 +152,10 @@ export function requireAuth() {
  * Redirects to board.html if a session ALREADY exists.
  */
 export function requireNoAuth() {
+    const session = getSessionUsername();
+    if (session) {
+        window.location.replace('board.html');
+        return false;
+    }
     return true;
 }
