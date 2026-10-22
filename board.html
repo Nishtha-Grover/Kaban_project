@@ -6,6 +6,7 @@
     <title>FlowForge Workspace</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/workspace.css">
+    <link rel="stylesheet" href="css/board.css">
 </head>
 <body class="app-body">
     <div class="app-shell">
@@ -118,10 +119,11 @@
                     <button class="chip" data-quick-filter="overdue">Overdue</button>
                 </div>
 
-                <div class="board">
-                    <div class="column" data-status="todo"><div class="column-heading"><span><i class="dot todo"></i>TO DO</span><b id="count-todo">0</b></div><div class="task-list" id="col-todo"></div></div>
-                    <div class="column" data-status="inprogress"><div class="column-heading"><span><i class="dot inprogress"></i>IN PROGRESS</span><b id="count-inprogress">0</b></div><div class="task-list" id="col-inprogress"></div></div>
-                    <div class="column" data-status="done"><div class="column-heading"><span><i class="dot done"></i>DONE</span><b id="count-done">0</b></div><div class="task-list" id="col-done"></div></div>
+                <p class="board-guidance">Your ideas, one step closer. <span>Move tasks as your work progresses.</span></p>
+                <div class="board" aria-label="Kanban task board">
+                    <section class="column" data-status="todo" aria-labelledby="todo-title"><div class="column-heading"><h2 id="todo-title"><i class="dot todo" aria-hidden="true"></i>To do</h2><b id="count-todo" aria-label="To do task count">0</b></div><p class="column-description">A home for your next steps.</p><div class="task-list" id="col-todo" aria-label="To do tasks"></div><div class="column-footnote">01 / Start with a small step</div></section>
+                    <section class="column" data-status="inprogress" aria-labelledby="progress-title"><div class="column-heading"><h2 id="progress-title"><i class="dot inprogress" aria-hidden="true"></i>In progress</h2><b id="count-inprogress" aria-label="In progress task count">0</b></div><p class="column-description">Give good ideas your attention.</p><div class="task-list" id="col-inprogress" aria-label="In progress tasks"></div><div class="column-footnote">02 / Find your rhythm</div></section>
+                    <section class="column" data-status="done" aria-labelledby="done-title"><div class="column-heading"><h2 id="done-title"><i class="dot done" aria-hidden="true"></i>Done</h2><b id="count-done" aria-label="Completed task count">0</b></div><p class="column-description">Every little win belongs here.</p><div class="task-list" id="col-done" aria-label="Completed tasks"></div><div class="column-footnote">03 / Celebrate the progress</div></section>
                 </div>
                 <div class="danger-zone"><button class="danger" id="reset-board-btn">Reset board</button></div>
             </section>
