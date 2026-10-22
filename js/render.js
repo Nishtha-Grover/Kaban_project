@@ -42,7 +42,12 @@ export function renderBoard() {
         const countEl = document.getElementById(`count-${status}`);
         if (countEl) countEl.textContent = counts[status];
         if (cols[status] && counts[status] === 0) {
-            cols[status].innerHTML = `<div class="empty-msg">No matching tasks</div>`;
+            const empty = document.createElement('div');
+            empty.className = 'empty-msg';
+            const hasTasks = Object.values(tasks).some(task => task.status === status);
+            const messages = { todo: 'A fresh start. Add your first task.', inprogress: 'Your next focus session starts here.', done: 'Your finished work will appear here.' };
+            empty.textContent = hasTasks ? 'No matches. Try adjusting your filters.' : messages[status];
+            cols[status].appendChild(empty);
         }
     });
 }
@@ -84,6 +89,7 @@ function createTaskElement(task, allTasks, lockState) {
     const el = document.createElement('article');
     el.className = 'task-card';
     el.dataset.id = task.id;
+    el.dataset.priority = task.priority || 'medium';
     el.draggable = true;
 
     const visuallyLocked = task.status === 'todo' && lockState.locked;
@@ -92,10 +98,14 @@ function createTaskElement(task, allTasks, lockState) {
 
     const top = document.createElement('div');
     top.className = 'card-topline';
-    top.innerHTML = `
-        <span class="category-pill">${escapeHtml(task.category || 'General')}</span>
-        <span class="priority-pill priority-${escapeHtml(task.priority || 'medium')}">${priorityLabel(task.priority)}</span>
-    `;
+    const category = document.createElement('span');
+    category.className = 'category-pill';
+    category.textContent = task.category || 'General';
+    const priority = document.createElement('span');
+    const priorityValue = ['low', 'medium', 'high', 'urgent'].includes(task.priority) ? task.priority : 'medium';
+    priority.className = `priority-pill priority-${priorityValue}`;
+    priority.textContent = priorityLabel(priorityValue);
+    top.append(category, priority);
 
     const header = document.createElement('div');
     header.className = 'task-header';
@@ -112,6 +122,8 @@ function createTaskElement(task, allTasks, lockState) {
         if (confirm(`Delete “${task.title}”?`)) deleteTask(task.id);
     });
     actions.append(editBtn, deleteBtn);
+    editBtn.setAttribute('aria-label', `Edit ${task.title}`);
+    deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
     header.append(title, actions);
 
     el.append(top, header);
@@ -139,10 +151,11 @@ function createTaskElement(task, allTasks, lockState) {
     meta.className = 'task-meta';
 
     if (task.dueDate) {
-        const due = document.createElement('span');
+        const due = document.createElement('time');
+        due.dateTime = task.dueDate;
         const overdue = isOverdue(task, new Date());
         due.className = overdue ? 'meta-item overdue' : 'meta-item';
-        due.textContent = `${overdue ? '⚠' : '◷'} ${formatDate(task.dueDate)}`;
+        due.textContent = `${overdue ? 'Overdue ·' : 'Due'} ${formatDate(task.dueDate)}`;
         meta.appendChild(due);
     }
 
@@ -154,6 +167,12 @@ function createTaskElement(task, allTasks, lockState) {
     }
 
     if (meta.children.length) el.appendChild(meta);
+    if (task.status === 'done') {
+        const completed = document.createElement('span');
+        completed.className = 'card-completed-label';
+        completed.textContent = '✓ Completed';
+        el.appendChild(completed);
+    }
 
     if (task.dependsOn?.length) {
         const depsContainer = document.createElement('div');
