@@ -144,13 +144,13 @@ export function updateTask(id, taskData) {
     rememberForUndo();
     Object.assign(task, normalizeTask({
         ...task,
-        title: taskData.title,
-        description: taskData.description || '',
-        priority: taskData.priority || 'medium',
-        category: taskData.category || 'General',
-        dueDate: taskData.dueDate || '',
-        tags: Array.isArray(taskData.tags) ? taskData.tags : [],
-        dependsOn: Array.isArray(taskData.dependsOn) ? taskData.dependsOn : []
+        title: taskData.title ?? task.title,
+        description: taskData.description ?? task.description,
+        priority: taskData.priority ?? task.priority,
+        category: taskData.category ?? task.category,
+        dueDate: taskData.dueDate ?? task.dueDate,
+        tags: taskData.tags ?? task.tags,
+        dependsOn: taskData.dependsOn ?? task.dependsOn
     }, id));
     addActivity('edit', `Updated “${task.title}”`, id);
     saveState();

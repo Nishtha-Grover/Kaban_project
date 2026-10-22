@@ -62,6 +62,10 @@ function openTaskModal(taskId = null) {
 
     const tasks = getTasks();
     const task = taskId ? getTask(taskId) : null;
+    if (taskId && !task) {
+        showToast('This task no longer exists.');
+        return;
+    }
 
     modalTitle.textContent = task ? 'Edit Task' : 'Create Task';
     idInput.value = task ? task.id : '';
@@ -124,6 +128,10 @@ function handleFormSubmit(event) {
     event.preventDefault();
 
     const taskId = idInput.value;
+    if (taskId && !getTask(taskId)) {
+        showError('This task was removed while the editor was open. Close the form and create a new task if needed.');
+        return;
+    }
     const title = titleInput.value.trim();
     const description = descInput.value.trim();
 

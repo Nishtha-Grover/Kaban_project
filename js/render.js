@@ -1,5 +1,6 @@
 import { getTasks, getLockState, deleteTask } from './state.js';
 import { setupDragAndDrop } from './dragdrop.js';
+import { showToast } from './toast.js';
 
 let filters = {
     search: '',
@@ -119,7 +120,21 @@ function createTaskElement(task, allTasks, lockState) {
 
     const editBtn = makeActionButton('Edit', () => window.openTaskModal(task.id));
     const deleteBtn = makeActionButton('Delete', () => {
-        if (confirm(`Delete “${task.title}”?`)) deleteTask(task.id);
+        const current = getTasks();
+        if (!current[task.id]) {
+            showToast('This task no longer exists.');
+            renderBoard();
+            return;
+        }
+        const dependents = Object.values(current).filter(item => item.dependsOn.includes(task.id));
+        const impact = dependents.length
+            ? `\n\nIt is a prerequisite for ${dependents.length} task(s):\n${dependents.map(item => `• ${item.title}`).join('\n')}\n\nThose dependency links will be removed.`
+            : '';
+        if (confirm(`Delete “${current[task.id].title}”?${impact}\n\nYou can restore this change using Undo.`)) {
+            deleteTask(task.id);
+            showToast('Task deleted. Use Undo to restore it.');
+            document.getElementById('undo-btn')?.focus();
+        }
     });
     actions.append(editBtn, deleteBtn);
     editBtn.setAttribute('aria-label', `Edit ${task.title}`);
