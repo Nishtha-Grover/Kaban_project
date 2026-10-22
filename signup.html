@@ -29,6 +29,7 @@
             <form id="signup-form">
                 <div class="form-group"><label for="username">Choose a username</label><input type="text" id="username" required autocomplete="username" placeholder="e.g. vaishnavi" aria-describedby="username-hint"><small id="username-hint">At least 3 characters. Make it yours.</small></div>
                 <div class="form-group"><label for="password">Create a password</label><div class="password-control"><input type="password" id="password" required autocomplete="new-password" placeholder="Enter your password" aria-describedby="password-hint"><button type="button" id="toggle-password" aria-controls="password" aria-pressed="false">Show</button></div><small id="password-hint">At least 3 characters for this demo account.</small></div>
+                <div class="form-group"><label for="confirm-password">Confirm your password</label><input type="password" id="confirm-password" required autocomplete="new-password" placeholder="Enter your password again"></div>
                 <div id="auth-error" class="error-msg hidden" role="alert"></div>
                 <button type="submit" class="primary signup-submit">Create my workspace <span>↗</span></button>
             </form>
@@ -41,8 +42,10 @@
 
     <script type="module">
         import { requireNoAuth, registerUser } from './js/auth.js';
+        import { attachAuthValidation } from './js/formValidation.js';
         requireNoAuth();
         const form = document.getElementById('signup-form');
+        attachAuthValidation(form, true);
         const errorMsg = document.getElementById('auth-error');
         const password = document.getElementById('password');
         const toggle = document.getElementById('toggle-password');

@@ -38,8 +38,10 @@
 
     <script type="module">
         import { requireNoAuth, loginUser } from './js/auth.js';
+        import { attachAuthValidation } from './js/formValidation.js';
         requireNoAuth();
         const form = document.getElementById('login-form');
+        attachAuthValidation(form);
         const errorMsg = document.getElementById('auth-error');
         const password = document.getElementById('password');
         const toggle = document.getElementById('toggle-password');

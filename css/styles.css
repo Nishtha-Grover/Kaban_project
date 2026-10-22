@@ -64,6 +64,10 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 a { color: inherit; }
 
 /* Generic controls */
+.form-group .field-error { color: #b43b32 !important; font-size: 11px; line-height: 1.5; }
+.form-group .field-error[hidden] { display: none; }
+.form-group input[aria-invalid="true"] { border-color: #b43b32 !important; }
+:root[data-theme="dark"] .form-group .field-error { color: #ffb4a9 !important; }
 .primary, .secondary, .danger, .text-button {
     border: 0;
     border-radius: 11px;
