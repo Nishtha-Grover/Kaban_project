@@ -147,10 +147,10 @@
                 <div class="form-group full"><label for="task-title">Title *</label><input type="text" id="task-title" required autocomplete="off" placeholder="e.g. Complete JavaScript assignment"></div>
                 <div class="form-group full"><label for="task-desc">Description</label><textarea id="task-desc" rows="3" placeholder="What needs to be done?"></textarea></div>
                 <div class="form-grid">
-                    <div class="form-group"><label for="task-priority">Priority</label><select id="task-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
-                    <div class="form-group"><label for="task-category">Category</label><input type="text" id="task-category" value="General" placeholder="College, Personal…"></div>
+                    <div class="form-group"><label for="task-priority">Priority</label><select id="task-priority" aria-describedby="priority-help"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select><small id="priority-help" class="task-field-help"></small></div>
+                    <div class="form-group"><label for="task-category">Category</label><input type="text" id="task-category" value="General" placeholder="College, Personal…" list="category-suggestions" maxlength="60"><datalist id="category-suggestions"></datalist></div>
                     <div class="form-group"><label for="task-due-date">Due date</label><input type="date" id="task-due-date"></div>
-                    <div class="form-group"><label for="task-tags">Tags</label><input type="text" id="task-tags" placeholder="JavaScript, Assignment"></div>
+                    <div class="form-group"><label for="task-tags">Tags</label><input type="text" id="task-tags" placeholder="JavaScript, Assignment" aria-describedby="tags-help"><small id="tags-help" class="task-field-help">Separate with commas. Up to 6 tags, 30 characters each.</small><div id="tag-preview" class="tags-row" aria-label="Tag preview"></div></div>
                 </div>
                 <div class="form-group full"><label>Dependencies</label><p class="field-help">Selected tasks must be completed before this one can move forward.</p><div id="dependency-list" class="dependency-picker"></div></div>
                 <div id="modal-error" class="error-msg hidden"></div>

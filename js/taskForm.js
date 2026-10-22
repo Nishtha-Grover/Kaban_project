@@ -1,6 +1,7 @@
 import { addTask, updateTask, getTask, getTasks } from './state.js';
 import { wouldCreateCycle } from './graph.js';
 import { showToast } from './toast.js';
+import { parseTags, priorityGuidance } from './taskLabels.js';
 
 const modal = document.getElementById('task-modal');
 const form = document.getElementById('task-form');
@@ -19,6 +20,8 @@ let returnFocus = null;
 const shell = document.querySelector('.app-shell');
 
 export function initTaskForm() {
+    priorityInput.addEventListener('change', updateLabelPreview);
+    tagsInput.addEventListener('input', updateLabelPreview);
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', 'modal-title');
@@ -61,6 +64,13 @@ function openTaskModal(taskId = null) {
     depList.innerHTML = '';
 
     const tasks = getTasks();
+    const suggestions = document.getElementById('category-suggestions');
+    suggestions.replaceChildren();
+    [...new Set(['General', 'College', 'Personal', 'Project', ...Object.values(tasks).map(task => task.category)])].sort().forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        suggestions.appendChild(option);
+    });
     const task = taskId ? getTask(taskId) : null;
     if (taskId && !task) {
         showToast('This task no longer exists.');
@@ -109,6 +119,7 @@ function openTaskModal(taskId = null) {
         depList.innerHTML = '<span class="picker-empty">No other tasks available yet.</span>';
     }
 
+    updateLabelPreview();
     modal.classList.remove('hidden');
     shell.inert = true;
     document.body.classList.add('task-dialog-open');
@@ -156,17 +167,19 @@ function handleFormSubmit(event) {
         }
     }
 
+    const tags = parseTags(tagsInput.value);
+    if (tags.length > 6 || tags.some(tag => tag.length > 30)) {
+        showError('Use no more than 6 unique tags, with at most 30 characters each.');
+        tagsInput.focus();
+        return;
+    }
     const taskData = {
         title,
         description,
         priority: priorityInput.value,
         category: categoryInput.value.trim() || 'General',
         dueDate: dueDateInput.value,
-        tags: tagsInput.value
-            .split(',')
-            .map(tag => tag.trim())
-            .filter(Boolean)
-            .slice(0, 6),
+        tags,
         dependsOn: selectedDeps
     };
 
@@ -184,6 +197,18 @@ function handleFormSubmit(event) {
 function showError(message) {
     errorMsg.textContent = message;
     errorMsg.classList.remove('hidden');
+}
+
+function updateLabelPreview() {
+    document.getElementById('priority-help').textContent = priorityGuidance[priorityInput.value] || '';
+    const preview = document.getElementById('tag-preview');
+    preview.replaceChildren();
+    parseTags(tagsInput.value).slice(0, 6).forEach(tag => {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.textContent = `#${tag}`;
+        preview.appendChild(chip);
+    });
 }
 
 function escapeHtml(value) {
