@@ -1,5 +1,5 @@
 import { getTasks, getLockState, deleteTask } from './state.js';
-import { setupDragAndDrop } from './dragdrop.js';
+import { setupDragAndDrop, moveTask } from './dragdrop.js';
 import { showToast } from './toast.js';
 
 let filters = {
@@ -210,6 +210,24 @@ function createTaskElement(task, allTasks, lockState) {
         el.appendChild(depsContainer);
     }
 
+    const moveLabel = document.createElement('label');
+    moveLabel.className = 'task-move-label';
+    moveLabel.append('Move to');
+    const move = document.createElement('select');
+    move.className = 'task-move';
+    move.setAttribute('aria-label', `Move ${task.title} to a column`);
+    Object.entries({ todo: 'To do', inprogress: 'In progress', done: 'Done' }).forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        option.selected = value === task.status;
+        move.appendChild(option);
+    });
+    move.addEventListener('change', () => {
+        if (!moveTask(task.id, move.value)) move.value = task.status;
+    });
+    moveLabel.appendChild(move);
+    el.appendChild(moveLabel);
     setupDragAndDrop(el);
     return el;
 }
