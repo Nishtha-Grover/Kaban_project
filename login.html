@@ -5,31 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In | FlowForge</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/signup.css">
+    <link rel="stylesheet" href="css/login.css">
 </head>
-<body>
-    <div class="auth-container">
-        <div class="auth-card" style="padding:32px;width:min(420px,94vw);border-radius:22px;">
-            <a class="brand" href="index.html" style="justify-content:center;margin-bottom:24px;"><span class="brand-mark">F</span><span>FlowForge</span></a>
-            <div style="text-align:center;margin-bottom:24px;">
-                <span class="eyebrow">WELCOME BACK</span>
-                <h2 style="margin:8px 0 6px;">Log in to your workspace</h2>
-                <p style="margin:0;color:var(--muted);font-size:12px;">Your tasks are saved locally for your account.</p>
+<body class="login-page">
+    <main class="signup-layout">
+        <section class="signup-story" aria-labelledby="story-title">
+            <a class="brand" href="index.html"><span class="brand-mark">F</span><span>FlowForge</span></a>
+            <div class="story-content"><span class="eyebrow">PICK UP WHERE POSSIBILITY LEFT OFF.</span><h1 id="story-title">A fresh day.<br>A clear head.<br><em>Your flow.</em></h1><p>Your ideas have a home here. Come back, find your next step, and keep making things happen.</p>
+                <div class="return-art" aria-hidden="true"><div class="return-orbit"></div><span class="return-star">✳</span><div class="return-card"><span>ONE STEP AT A TIME</span><strong>Find your rhythm.</strong><div class="rhythm-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>A little progress goes a long way.</small></div><div class="return-note">↗ Ready for your next chapter.</div></div>
+            </div><p class="story-footer">A little order for your big ideas.</p>
+        </section>
+        <section class="signup-form-panel" aria-labelledby="login-title">
+            <a class="back-link" href="index.html">← Back to home</a>
+            <div class="signup-form-wrap">
+            <div class="signup-heading">
+                <span class="eyebrow">GOOD TO HAVE YOU BACK</span>
+                <h2 id="login-title">Back to<br>your flow.</h2>
+                <p>Log in and make room for what matters today.</p>
             </div>
-            <form id="login-form" style="display:grid;gap:14px;">
+            <form id="login-form">
                 <div class="form-group"><label for="username">Username</label><input type="text" id="username" required autocomplete="username" placeholder="Enter username"></div>
-                <div class="form-group"><label for="password">Password</label><input type="password" id="password" required autocomplete="current-password" placeholder="Enter password"></div>
-                <div id="auth-error" class="error-msg hidden"></div>
-                <button type="submit" class="primary" style="width:100%;">Log in</button>
+                <div class="form-group"><label for="password">Password</label><div class="password-control"><input type="password" id="password" required autocomplete="current-password" placeholder="Enter your password"><button type="button" id="toggle-password" aria-controls="password" aria-pressed="false">Show</button></div></div>
+                <div id="auth-error" class="error-msg hidden" role="alert"></div>
+                <button type="submit" class="primary signup-submit">Open my workspace <span>↗</span></button>
             </form>
-            <p style="text-align:center;margin:18px 0 0;color:var(--muted);font-size:12px;">New to FlowForge? <a href="signup.html" style="color:var(--primary);font-weight:700;">Create account</a></p>
-        </div>
-    </div>
+            <p class="login-prompt">New here? <a href="signup.html">Find your starting point →</a></p>
+            <div class="storage-note"><span>ⓘ</span><p>Use the browser where you created your demo account. Your account and tasks are saved on this device.</p></div>
+            </div><p class="form-footer">Small steps. A little more momentum.</p>
+        </section>
+    </main>
 
     <script type="module">
         import { requireNoAuth, loginUser } from './js/auth.js';
         requireNoAuth();
         const form = document.getElementById('login-form');
         const errorMsg = document.getElementById('auth-error');
+        const password = document.getElementById('password');
+        const toggle = document.getElementById('toggle-password');
+        toggle.addEventListener('click', () => {
+            const show = password.type === 'password';
+            password.type = show ? 'text' : 'password';
+            toggle.textContent = show ? 'Hide' : 'Show';
+            toggle.setAttribute('aria-pressed', String(show));
+        });
         form.addEventListener('submit', event => {
             event.preventDefault();
             errorMsg.classList.add('hidden');
