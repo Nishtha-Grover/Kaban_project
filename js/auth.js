@@ -122,8 +122,12 @@ export function loginUser(username, password) {
  * Log out the current user.
  */
 export function logoutUser() {
-    localStorage.removeItem(SESSION_KEY);
-    window.location.href = 'index.html';
+    try {
+        localStorage.removeItem(SESSION_KEY);
+    } catch {
+        // Still leave the workspace when the browser blocks storage access.
+    }
+    window.location.replace('index.html');
 }
 
 /**
@@ -131,7 +135,38 @@ export function logoutUser() {
  * @returns {string|null}
  */
 export function getSessionUsername() {
-    return localStorage.getItem(SESSION_KEY);
+    try {
+        const username = localStorage.getItem(SESSION_KEY);
+        if (!username) return null;
+        const users = getUsers();
+        if (Object.hasOwn(users, username)) return username;
+        localStorage.removeItem(SESSION_KEY);
+    } catch {
+        // An unreadable session is treated as signed out.
+    }
+    return null;
+}
+
+let sessionWatcherInstalled = false;
+
+function watchWorkspaceSession(username) {
+    if (sessionWatcherInstalled) return;
+    sessionWatcherInstalled = true;
+    const check = () => {
+        const current = getSessionUsername();
+        if (current !== username) {
+            // Prevent the old account's board being used during navigation.
+            document.documentElement.style.visibility = 'hidden';
+            window.location.replace(current ? 'board.html' : 'login.html');
+        }
+    };
+    window.addEventListener('storage', event => {
+        if (event.key === SESSION_KEY || event.key === USERS_KEY || event.key === null) check();
+    });
+    window.addEventListener('pageshow', check);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') check();
+    });
 }
 
 /**
@@ -144,6 +179,7 @@ export function requireAuth() {
         window.location.replace('login.html');
         return false;
     }
+    watchWorkspaceSession(session);
     return true;
 }
 
