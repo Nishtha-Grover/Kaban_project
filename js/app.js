@@ -99,12 +99,30 @@ function renderEverything() {
 
 
 function wireNavigation() {
+    const menu = document.getElementById('navigation-toggle');
+    const setMenu = open => {
+        document.body.classList.toggle('navigation-open', open);
+        menu.setAttribute('aria-expanded', String(open));
+        menu.textContent = open ? '✕ Close menu' : '☰ Menu';
+    };
+    menu.addEventListener('click', () => setMenu(menu.getAttribute('aria-expanded') !== 'true'));
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && menu.getAttribute('aria-expanded') === 'true') {
+            setMenu(false);
+            menu.focus();
+        }
+    });
+    window.matchMedia('(max-width: 900px)').addEventListener('change', () => setMenu(false));
 
     document.querySelectorAll('[data-view-target]').forEach(button => {
 
         button.addEventListener('click', () => {
 
             switchView(button.dataset.viewTarget);
+            if (menu.getAttribute('aria-expanded') === 'true') {
+                setMenu(false);
+                menu.focus();
+            }
 
         });
 
@@ -116,6 +134,8 @@ function wireNavigation() {
 function switchView(view) {
 
     activeView = view;
+    const labels = { dashboard: 'Dashboard', board: 'Kanban Board', graph: 'Dependencies', activity: 'Activity' };
+    document.getElementById('workspace-current').textContent = labels[view] || 'Workspace';
 
 
     document.querySelectorAll('.app-view').forEach(section => {
@@ -129,6 +149,10 @@ function switchView(view) {
 
 
     document.querySelectorAll('[data-view-target]').forEach(button => {
+        if (button.closest('.side-nav')) {
+            if (button.dataset.viewTarget === view) button.setAttribute('aria-current', 'page');
+            else button.removeAttribute('aria-current');
+        }
 
         button.classList.toggle(
             'active',
