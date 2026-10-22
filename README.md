@@ -101,13 +101,13 @@ Instead of displaying random generic tasks, the library contains academic tasks 
 The task library is stored in:
 
 ```text
-student-tasks.json
+data/student-tasks.json
 ```
 
 JavaScript loads the JSON data using the Fetch API and Async/Await:
 
 ```javascript
-const response = await fetch('./student-tasks.json');
+const response = await fetch('./data/student-tasks.json');
 const data = await response.json();
 ```
 
@@ -416,16 +416,21 @@ LocalStorage
 # Project Structure
 
 ```text
-FlowForge_Enhanced/
+FlowForge/
 
 ├── index.html
 ├── login.html
 ├── signup.html
 ├── board.html
-├── student-tasks.json
-│
 ├── css/
 │   └── styles.css
+│
+├── data/
+│   └── student-tasks.json
+│
+├── docs/
+│   ├── FlowForge.pptx
+│   └── screenshots/
 │
 └── js/
     ├── api.js
@@ -557,10 +562,10 @@ The application can be used both as a classroom JavaScript project and as a pers
 
 # Screenshots
 
-![Landing Page](screenshots/1_landing.png)
-![Login](screenshots/2_login.png)
-![Sign Up](screenshots/3_signup.png)
-![Board](screenshots/4_board.png)
-![Kanban Board](screenshots/5_kanban_board.png)
-![Dependencies](screenshots/6_dependencies.png)
-![Activity](screenshots/7_activity.png)
+![Landing Page](docs/screenshots/1_landing.png)
+![Login](docs/screenshots/2_login.png)
+![Sign Up](docs/screenshots/3_signup.png)
+![Board](docs/screenshots/4_board.png)
+![Kanban Board](docs/screenshots/5_kanban_board.png)
+![Dependencies](docs/screenshots/6_dependencies.png)
+![Activity](docs/screenshots/7_activity.png)

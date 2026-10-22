@@ -1,4 +1,4 @@
-const TASKS_API = './student-tasks.json';
+const TASKS_API = './data/student-tasks.json';
 
 export async function fetchExternalTasks() {
     const response = await fetch(TASKS_API);
