@@ -1,4 +1,17 @@
 /* Workspace shell: uses the shared palette in both light and dark modes. */
+.task-dialog-open { overflow: hidden; }
+.task-modal-content { padding: 30px; border-radius: 16px; animation: surface-enter .25s ease both; }
+.task-modal-content .modal-header { align-items: flex-start; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.task-modal-content .modal-header h2 { margin: 8px 0 0; font-weight: 600; letter-spacing: -1px; font-size: 28px; }
+.modal-close-button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 24px; }
+.modal-close-button:hover { background: var(--primary-soft); color: var(--primary); }
+.task-modal-content .form-group label { font-size: 12px; }
+.task-modal-content input, .task-modal-content select, .task-modal-content textarea { font-size: 13px; }
+.task-modal-content textarea { min-height: 105px; resize: vertical; }
+.task-modal-content .dep-option { border-radius: 8px; background: var(--surface-2); }
+.task-modal-content .dep-option:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.task-modal-content .modal-actions { padding-top: 20px; border-top: 1px solid var(--border); }
+@media (max-width: 620px) { .task-modal-content { padding: 20px; } }
 :root { --sidebar: 262px; }
 .sidebar { padding: 30px 20px 18px; }
 .sidebar .brand { font-size: 24px; letter-spacing: -1px; }

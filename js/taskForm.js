@@ -15,8 +15,37 @@ const depList = document.getElementById('dependency-list');
 const errorMsg = document.getElementById('modal-error');
 const modalTitle = document.getElementById('modal-title');
 const cancelBtn = document.getElementById('modal-cancel');
+let returnFocus = null;
+const shell = document.querySelector('.app-shell');
 
 export function initTaskForm() {
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'modal-title');
+    errorMsg.setAttribute('role', 'alert');
+    titleInput.maxLength = 160;
+    descInput.maxLength = 3000;
+    const heading = modal.querySelector('.modal-header');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'modal-close-button';
+    close.textContent = '×';
+    close.setAttribute('aria-label', 'Close task form');
+    close.addEventListener('click', closeTaskModal);
+    heading.appendChild(close);
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeTaskModal();
+        }
+        if (event.key === 'Tab') {
+            const controls = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), a[href]')].filter(element => element.getClientRects().length);
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    });
     cancelBtn.addEventListener('click', closeTaskModal);
     modal.addEventListener('click', event => {
         if (event.target === modal) closeTaskModal();
@@ -26,6 +55,7 @@ export function initTaskForm() {
 }
 
 function openTaskModal(taskId = null) {
+    returnFocus = document.activeElement;
     errorMsg.classList.add('hidden');
     form.reset();
     depList.innerHTML = '';
@@ -76,11 +106,18 @@ function openTaskModal(taskId = null) {
     }
 
     modal.classList.remove('hidden');
+    shell.inert = true;
+    document.body.classList.add('task-dialog-open');
+    modal.querySelector('[type="submit"]').textContent = task ? 'Save changes ↗' : 'Create task ↗';
     titleInput.focus();
 }
 
 function closeTaskModal() {
     modal.classList.add('hidden');
+    shell.inert = false;
+    document.body.classList.remove('task-dialog-open');
+    const target = returnFocus?.isConnected ? returnFocus : document.getElementById('add-task-btn');
+    target?.focus();
 }
 
 function handleFormSubmit(event) {
@@ -92,6 +129,7 @@ function handleFormSubmit(event) {
 
     if (!title) {
         showError('Title is required.');
+        titleInput.focus();
         return;
     }
 
