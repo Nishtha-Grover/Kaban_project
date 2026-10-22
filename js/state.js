@@ -1,5 +1,6 @@
 import { computeLockStates } from './graph.js';
 import { getSessionUsername } from './auth.js';
+import { normalizeTask, TASK_STATUSES } from './taskModel.js';
 
 function getStorageKey() {
     const session = getSessionUsername();
@@ -22,15 +23,10 @@ let undoStack = [];
 
 function normalizeState(raw) {
     const safe = raw && typeof raw === 'object' ? raw : {};
-    const tasks = safe.tasks && typeof safe.tasks === 'object' ? safe.tasks : {};
-
-    Object.values(tasks).forEach(task => {
-        task.priority = task.priority || 'medium';
-        task.category = task.category || 'General';
-        task.dueDate = task.dueDate || '';
-        task.tags = Array.isArray(task.tags) ? task.tags : [];
-        task.dependsOn = Array.isArray(task.dependsOn) ? task.dependsOn : [];
-        task.status = task.status || 'todo';
+    const records = safe.tasks && typeof safe.tasks === 'object' && !Array.isArray(safe.tasks) ? safe.tasks : {};
+    const tasks = Object.create(null);
+    Object.entries(records).forEach(([id, task]) => {
+        if (task && typeof task === 'object' && !Array.isArray(task)) tasks[id] = normalizeTask(task, id);
     });
 
     return {
@@ -61,6 +57,7 @@ function addActivity(type, message, taskId = null) {
 
 export function subscribe(callback) {
     subscribers.push(callback);
+    return () => { subscribers = subscribers.filter(item => item !== callback); };
 }
 
 function notify() {
@@ -117,7 +114,7 @@ export function getLockState(id) {
 }
 
 export function generateId() {
-    return 'task-' + Math.random().toString(36).slice(2, 11);
+    return 'task-' + crypto.randomUUID();
 }
 
 export function addTask(taskData) {
@@ -135,7 +132,7 @@ export function addTask(taskData) {
         dependsOn: Array.isArray(taskData.dependsOn) ? taskData.dependsOn : [],
         createdAt: new Date().toISOString()
     };
-    state.tasks[id] = task;
+    state.tasks[id] = normalizeTask(task, id);
     addActivity('create', `Created “${task.title}”`, id);
     saveState();
     return id;
@@ -145,7 +142,8 @@ export function updateTask(id, taskData) {
     const task = state.tasks[id];
     if (!task) return;
     rememberForUndo();
-    Object.assign(task, {
+    Object.assign(task, normalizeTask({
+        ...task,
         title: taskData.title,
         description: taskData.description || '',
         priority: taskData.priority || 'medium',
@@ -153,14 +151,14 @@ export function updateTask(id, taskData) {
         dueDate: taskData.dueDate || '',
         tags: Array.isArray(taskData.tags) ? taskData.tags : [],
         dependsOn: Array.isArray(taskData.dependsOn) ? taskData.dependsOn : []
-    });
+    }, id));
     addActivity('edit', `Updated “${task.title}”`, id);
     saveState();
 }
 
 export function updateTaskStatus(id, newStatus) {
     const task = state.tasks[id];
-    if (!task || task.status === newStatus) return;
+    if (!task || task.status === newStatus || !TASK_STATUSES.includes(newStatus)) return;
     rememberForUndo();
     const oldStatus = task.status;
     task.status = newStatus;
@@ -190,8 +188,9 @@ export function importTasks(items) {
     let count = 0;
 
     items.forEach(item => {
+        if (!item || typeof item !== 'object' || typeof item.title !== 'string' || !item.title.trim()) return;
         const id = generateId();
-        state.tasks[id] = {
+        state.tasks[id] = normalizeTask({
             id,
             title: item.title,
             description: item.description || 'Imported from College Task Library',
@@ -202,7 +201,7 @@ export function importTasks(items) {
             tags: Array.isArray(item.tags) ? item.tags : ['College'],
             dependsOn: [],
             createdAt: new Date().toISOString()
-        };
+        }, id);
         count += 1;
     });
 
