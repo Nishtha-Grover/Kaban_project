@@ -7,7 +7,7 @@ const sendOptions = { root: frontendRoot, dotfiles: 'deny', maxAge: 0 };
 
 export function mountFrontend(app) {
     // Explicit entry points: never expose the repository root with express.static.
-    const pages = ['index.html', 'login.html', 'signup.html', 'board.html'];
+    const pages = ['index.html', 'login.html', 'signup.html', 'board.html', 'studio.html'];
     for (const page of pages) {
         const routes = page === 'index.html' ? ['/', '/index.html'] : [`/${page}`];
         app.get(routes, (req, res, next) => {

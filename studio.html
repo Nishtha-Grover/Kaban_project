@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Database Studio · FlowForge</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/studio.css">
+    <script type="module" src="js/studio.js"></script>
+</head>
+<body class="studio-body">
+    <a class="studio-skip" href="#studio-main">Skip to Database Studio</a>
+    <header class="studio-header">
+        <a class="brand" href="index.html"><span class="brand-mark">F</span><span>FlowForge</span></a>
+        <span class="studio-header-label">THE DATA WORKSPACE</span>
+        <div class="studio-header-actions"><a href="board.html">← Back to workspace</a><button class="secondary" id="theme-toggle" type="button"><span id="theme-icon">☾</span> <span id="theme-label">Dark mode</span></button></div>
+    </header>
+    <main id="studio-main" class="studio-main">
+        <section class="studio-hero">
+            <div><p class="eyebrow">BUILT TO BE UNDERSTOOD</p><h1>A little closer<br>to your <em>data.</em></h1><p class="studio-intro">Explore the structure behind your flow.<br>Every task, connection and small step forward.</p></div>
+            <div class="studio-orbit" aria-hidden="true"><div class="orbit-ring"></div><span class="orbit-node node-user">User</span><span class="orbit-node node-task">Task</span><span class="orbit-node node-activity">Activity</span><span class="orbit-center">F<span>connected by design</span></span></div>
+        </section>
+        <div class="studio-toolbar"><div><span class="studio-dot" id="connection-dot"></span><strong>Database Studio</strong><span class="studio-divider">/</span><span id="connection-status" role="status">Checking connection…</span></div><button class="studio-text-button" id="connection-refresh" type="button">Check connection ↻</button></div>
+        <p class="studio-notice">You’re viewing the schema guide. These are field definitions, not saved documents. The live document explorer comes next.</p>
+        <div class="studio-grid">
+            <aside class="studio-collections" aria-label="Database collections"><div class="studio-section-label">COLLECTIONS <span>05</span></div>
+                <nav id="collection-list" aria-label="Choose a collection">
+                    <button type="button" data-collection="users" aria-pressed="true"><span class="collection-icon">U</span><span>Users<small>Identity & ownership</small></span><span class="collection-arrow">↗</span></button>
+                    <button type="button" data-collection="tasks" aria-pressed="false"><span class="collection-icon">T</span><span>Tasks<small>Work in motion</small></span><span class="collection-arrow">↗</span></button>
+                    <button type="button" data-collection="activities" aria-pressed="false"><span class="collection-icon">A</span><span>Activities<small>A history of progress</small></span><span class="collection-arrow">↗</span></button>
+                    <button type="button" data-collection="attachments" aria-pressed="false"><span class="collection-icon">↥</span><span>Attachments<small>File metadata</small></span><span class="collection-arrow">↗</span></button>
+                    <button type="button" data-collection="blobs" aria-pressed="false"><span class="collection-icon">▤</span><span>File storage<small>Private file bytes</small></span><span class="collection-arrow">↗</span></button>
+                </nav>
+                <div class="studio-sidebar-note"><span>↳</span><strong>Everything has a place.</strong><p>Owner references keep each person’s workspace separate.</p></div>
+            </aside>
+            <section class="studio-panel" aria-labelledby="collection-title">
+                <div class="studio-panel-heading"><div><p class="eyebrow">SCHEMA GUIDE</p><h2 id="collection-title">Users</h2></div><span class="studio-pill">Structure preview</span></div>
+                <p id="collection-description" class="studio-description">Account identity and workspace ownership.</p>
+                <div class="studio-view-switch" role="group" aria-label="Schema display"><button type="button" id="fields-view" aria-pressed="true">Fields</button><button type="button" id="json-view" aria-pressed="false">JSON outline</button></div>
+                <div id="fields-panel" class="studio-table-scroll"><table class="studio-table"><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Purpose</th></tr></thead><tbody id="schema-fields"></tbody></table></div>
+                <pre id="json-panel" class="studio-code" tabindex="0" aria-label="Schema outline, not a saved document" hidden></pre>
+                <div class="studio-panel-footer"><span>◇ Mongoose schema</span><span id="field-count"></span></div>
+            </section>
+            <aside class="studio-insights" aria-label="Collection details">
+                <article class="studio-detail-card"><p class="eyebrow">THE CONNECTION</p><h3 id="relationship-title">One person.<br>One workspace.</h3><p id="relationship-copy"></p><div class="studio-relation"><span id="relation-from">User</span><span aria-hidden="true">→</span><span id="relation-to">Tasks</span></div></article>
+                <article class="studio-detail-card studio-private"><span class="studio-lock" aria-hidden="true">◇</span><h3>Private by design</h3><p id="privacy-copy"></p></article>
+            </aside>
+        </div>
+        <section class="studio-roadmap" aria-label="Database showcase roadmap"><div><span class="eyebrow">UP NEXT IN THE STUDIO</span><h2>See the whole picture.</h2></div><article><span>01 / DOCUMENTS</span><h3>Your data, up close</h3><p>Browse your saved documents.</p><small>Coming next</small></article><article><span>02 / RELATIONSHIPS</span><h3>Follow the connections</h3><p>Explore references with populate.</p><small>Planned</small></article><article><span>03 / INSIGHTS</span><h3>More than a collection</h3><p>Discover aggregation and indexes.</p><small>Planned</small></article></section>
+        <footer class="studio-footer"><span>FlowForge / Database Studio</span><span>A clear view beneath the surface.</span></footer>
+    </main>
+</body>
+</html>
