@@ -26,26 +26,58 @@ export async function fetchExternalTasks() {
     }));
 }
 
-export function fetchWeatherByLocation(latitude, longitude) {
+// Promise chaining demonstrates lectures 25–26. Every request settles with
+// either validated weather or an actionable error; missing data is never 0°C.
+export function fetchWeatherByLocation(latitude, longitude, { timeoutMs = 10000 } = {}) {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+        return Promise.reject(new Error('Your location is invalid. Please try again.'));
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&current=temperature_2m,weather_code&timezone=auto`;
-
-    return fetch(url)
+    return Promise.resolve()
+        .then(() => fetch(url, { signal: controller.signal }))
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Weather API request failed');
-            }
-
+            if (!response.ok) throw new Error('The weather service is unavailable. Please retry.');
             return response.json();
         })
-        .then(data => ({
-            temperature: Math.round(
-                data.current?.temperature_2m ?? 0
-            ),
-            code: data.current?.weather_code ?? 0,
-            description: weatherDescription(
-                data.current?.weather_code
-            )
-        }));
+        .then(data => {
+            const current = data?.current;
+            if (!Number.isFinite(current?.temperature_2m) || !Number.isInteger(current?.weather_code)) {
+                throw new Error('The weather service returned incomplete data. Please retry.');
+            }
+            return {
+                temperature: Math.round(current.temperature_2m),
+                code: current.weather_code,
+                description: weatherDescription(current.weather_code)
+            };
+        })
+        .catch(error => {
+            if (controller.signal.aborted) throw new Error('The weather request timed out. Please retry.');
+            if (error instanceof TypeError) throw new Error('Could not connect to the weather service. Check your connection and retry.');
+            if (error instanceof SyntaxError) throw new Error('The weather service returned unreadable data. Please retry.');
+            throw error;
+        })
+        .finally(() => clearTimeout(timer));
+}
+
+export function getWeatherLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('Location is not supported by this browser.'));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            position => resolve(position.coords),
+            error => reject(new Error({
+                1: 'Location permission was denied. Allow location access to use local weather.',
+                2: 'Your location is unavailable. Please try again.',
+                3: 'Finding your location timed out. Please try again.'
+            }[error.code] || 'Could not find your location. Please retry.')),
+            { timeout: 10000, maximumAge: 300000, enableHighAccuracy: false }
+        );
+    });
 }
 
 function weatherDescription(code) {

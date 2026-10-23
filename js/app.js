@@ -33,7 +33,8 @@ import { renderDependencyGraph } from './graphView.js';
 
 import {
     fetchExternalTasks,
-    fetchWeatherByLocation
+    fetchWeatherByLocation,
+    getWeatherLocation
 } from './api.js';
 
 import {
@@ -743,102 +744,31 @@ async function openImportModal() {
 
 
 function wireWeather() {
-
-    const button =
-        document.getElementById('weather-button');
-
-
-    button.addEventListener(
-        'click',
-        () => {
-
-            const copy =
-                document.getElementById(
-                    'weather-copy'
-                );
-
-
-            if (
-                !navigator.geolocation
-            ) {
-
-                copy.textContent =
-                    'Location is not supported by this browser.';
-
-                return;
-
-            }
-
-
-            copy.textContent =
-                'Getting your location…';
-
-
-            button.disabled =
-                true;
-
-
-            navigator.geolocation
-                .getCurrentPosition(
-
-                    position => {
-
-                        fetchWeatherByLocation(
-
-                            position.coords.latitude,
-
-                            position.coords.longitude
-
-                        )
-
-                            .then(weather => {
-
-                                document
-                                    .getElementById(
-                                        'weather-temp'
-                                    )
-                                    .textContent =
-                                    `${weather.temperature}°C`;
-
-
-                                copy.textContent =
-                                    weather.description;
-
-                            })
-
-                            .catch(() => {
-
-                                copy.textContent =
-                                    'Weather could not be loaded right now.';
-
-                            })
-
-                            .finally(() => {
-
-                                button.disabled =
-                                    false;
-
-                            });
-
-                    },
-
-
-                    () => {
-
-                        copy.textContent =
-                            'Location permission was not granted.';
-
-
-                        button.disabled =
-                            false;
-
-                    }
-
-                );
-
-        }
-    );
-
+    const button = document.getElementById('weather-button');
+    const copy = document.getElementById('weather-copy');
+    const temperature = document.getElementById('weather-temp');
+    copy.setAttribute('role', 'status');
+    button.addEventListener('click', () => {
+        if (button.disabled) return;
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        temperature.textContent = '—';
+        copy.textContent = 'Getting your location…';
+        getWeatherLocation()
+            .then(coords => {
+                copy.textContent = 'Loading local weather…';
+                return fetchWeatherByLocation(coords.latitude, coords.longitude);
+            })
+            .then(weather => {
+                temperature.textContent = `${weather.temperature}°C`;
+                copy.textContent = weather.description;
+            })
+            .catch(error => { copy.textContent = error.message; })
+            .finally(() => {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            });
+    });
 }
 
 
