@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import { User } from './models/User.js';
 import { Task } from './models/Task.js';
 import { Activity } from './models/Activity.js';
+import { Attachment } from './models/Attachment.js';
+import { AttachmentBlob } from './models/AttachmentBlob.js';
 
 let ready = false;
 export function databaseReady() {
@@ -14,6 +16,8 @@ export async function connectDatabase(uri) {
     await User.createIndexes();
     await Task.createIndexes();
     await Activity.createIndexes();
+    await Attachment.createIndexes();
+    await AttachmentBlob.createIndexes();
     ready = true;
     return true;
 }

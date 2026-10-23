@@ -3,6 +3,7 @@ import { User } from '../models/User.js';
 import { Task } from '../models/Task.js';
 import { Attachment } from '../models/Attachment.js';
 import { Activity } from '../models/Activity.js';
+import { AttachmentBlob } from '../models/AttachmentBlob.js';
 import { filesystemAudit } from './filesystemAudit.js';
 
 function scopedModel(model, session) {
@@ -34,6 +35,8 @@ export async function runWorkspaceTransaction(owner, work, {
                 session, tasks: scopedTasks, attachments: scopedModel(attachments, session),
                 countDependencies: filter => scopedTasks.countDocuments(filter),
                 saveTask: task => task.save({ session }),
+                saveAttachment: attachment => attachment.save({ session }),
+                saveAttachmentBlob: blob => new AttachmentBlob(blob).save({ session }),
                 recordActivity: async ({ task, action, message }) => {
                     const records = await activities.create([{ owner, task, action, message }], { session });
                     committedRecords.push(...records);

@@ -2,6 +2,7 @@ import express from 'express';
 import { databaseReady } from './database.js';
 import { authRouter } from './routes/auth.js';
 import { tasksRouter } from './routes/tasks.js';
+import { attachmentsRouter } from './routes/attachments.js';
 import { mountFrontend } from './frontend.js';
 
 export function createApp() {
@@ -16,6 +17,7 @@ export function createApp() {
     });
 
     app.use('/api/auth', authRouter);
+    app.use('/api/tasks/:taskId/attachments', attachmentsRouter);
     app.use('/api/tasks', tasksRouter);
     mountFrontend(app);
     app.use((req, res) => {
