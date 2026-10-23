@@ -107,7 +107,39 @@ export function renderActivityView() {
         container.innerHTML = '<div class="empty-panel large">No activity yet. Create or move a task to begin.</div>';
         return;
     }
-    container.innerHTML = activities.map(activity => activityMarkup(activity, true)).join('');
+    container.replaceChildren();
+    const summary = document.createElement('p');
+    summary.className = 'timeline-summary';
+    summary.textContent = `${activities.length} recent events · Your workspace keeps the latest 60 events.`;
+    container.appendChild(summary);
+    const groups = new Map();
+    [...activities].sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)).forEach(activity => {
+        const date = new Date(activity.createdAt);
+        const valid = !Number.isNaN(date.getTime());
+        const label = valid ? new Intl.DateTimeFormat('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(date) : 'Unknown date';
+        if (!groups.has(label)) groups.set(label, []);
+        groups.get(label).push(activity);
+    });
+    for (const [label, events] of groups) {
+        const section = document.createElement('section');
+        section.className = 'timeline-group';
+        const heading = document.createElement('h3');
+        heading.textContent = label;
+        const list = document.createElement('ol');
+        list.className = 'timeline-events';
+        events.forEach(activity => {
+            const item = document.createElement('li');
+            item.innerHTML = activityMarkup(activity);
+            const labels = {create:'Created',edit:'Edited',move:'Moved',delete:'Deleted',import:'Imported'};
+            const badge = document.createElement('span');
+            badge.className = 'timeline-type';
+            badge.textContent = labels[activity.type] || 'Updated';
+            item.querySelector('.activity-copy').prepend(badge);
+            list.appendChild(item);
+        });
+        section.append(heading, list);
+        container.appendChild(section);
+    }
 }
 
 function activityMarkup(activity, full = false) {
@@ -119,12 +151,13 @@ function activityMarkup(activity, full = false) {
         import: '⇩'
     }[activity.type] || '•';
 
-    const time = new Intl.DateTimeFormat('en-IN', {
+    const date = new Date(activity.createdAt);
+    const time = Number.isNaN(date.getTime()) ? 'Time unavailable' : new Intl.DateTimeFormat('en-IN', {
         day: full ? 'numeric' : undefined,
         month: full ? 'short' : undefined,
         hour: 'numeric',
         minute: '2-digit'
-    }).format(new Date(activity.createdAt));
+    }).format(date);
 
     return `
         <div class="activity-row">
