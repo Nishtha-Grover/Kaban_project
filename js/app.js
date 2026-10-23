@@ -5,6 +5,7 @@ import {
     importTasks,
     undoLastAction,
     canUndo,
+    getUndoInfo,
     getTasks
 } from './state.js';
 
@@ -415,25 +416,19 @@ function wireGlobalActions() {
         });
 
 
-    document
-        .getElementById('undo-btn')
-        .addEventListener('click', () => {
-
-            if (undoLastAction()) {
-
-                showToast(
-                    'Last action undone'
-                );
-
-            } else {
-
-                showToast(
-                    'Nothing to undo'
-                );
-
-            }
-
-        });
+    const undo = () => {
+        const info = getUndoInfo();
+        if (undoLastAction()) showToast(`Undone: ${info.label}`);
+        else showToast('Nothing to undo');
+    };
+    document.getElementById('undo-btn').addEventListener('click', undo);
+    document.addEventListener('keydown', event => {
+        if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'z') return;
+        if (event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+        if (document.querySelector('.modal:not(.hidden)') || !canUndo()) return;
+        event.preventDefault();
+        undo();
+    });
 
 }
 
@@ -446,6 +441,10 @@ function updateUndoButton() {
 
     button.disabled =
         !canUndo();
+    const info = getUndoInfo();
+    button.textContent = info.count ? `↶ Undo (${info.count})` : '↶ Undo';
+    button.title = info.count ? `Undo: ${info.label}. Up to 20 changes in this session. Ctrl/⌘ Z.` : 'No changes to undo in this session.';
+    button.setAttribute('aria-label', info.count ? `Undo: ${info.label}` : 'Nothing to undo');
 
 }
 

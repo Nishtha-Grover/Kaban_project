@@ -300,3 +300,14 @@ export function undoLastAction() {
 export function canUndo() {
     return undoStack.length > 0;
 }
+
+export function getUndoInfo() {
+    if (!undoStack.length) return { count: 0, label: 'Nothing to undo' };
+    const previous = undoStack[undoStack.length - 1];
+    const previousActivities = new Set(previous.activities.map(activity => activity.id));
+    const latestChange = state.activities.find(activity => !previousActivities.has(activity.id));
+    return {
+        count: undoStack.length,
+        label: latestChange?.message || 'Reset board'
+    };
+}
