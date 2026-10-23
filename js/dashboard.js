@@ -1,14 +1,10 @@
 import { getTasks, getActivities, getLockState } from './state.js';
 import { daysUntil, deadlineLabel, isOverdue } from './deadlines.js';
+import { calculateMetrics } from './metrics.js';
 
 export function renderDashboard() {
     const tasks = Object.values(getTasks());
-    const total = tasks.length;
-    const todo = tasks.filter(task => task.status === 'todo').length;
-    const inprogress = tasks.filter(task => task.status === 'inprogress').length;
-    const done = tasks.filter(task => task.status === 'done').length;
-    const blocked = tasks.filter(task => getLockState(task.id).locked).length;
-    const progress = total ? Math.round((done / total) * 100) : 0;
+    const { total, todo, inprogress, done, blocked, ready, progress } = calculateMetrics(tasks, getLockState);
 
     setText('metric-total', total);
     setText('metric-todo', todo);
@@ -16,9 +12,17 @@ export function renderDashboard() {
     setText('metric-done', done);
     setText('metric-blocked', blocked);
     setText('progress-percent', `${progress}%`);
+    setText('progress-summary', total
+        ? `${done} of ${total} tasks completed · ${ready} ready to start · ${blocked} waiting on prerequisites`
+        : 'Create your first task to start tracking progress.');
 
     const bar = document.getElementById('progress-bar-fill');
     if (bar) bar.style.width = `${progress}%`;
+    const progressTrack = document.getElementById('dashboard-progress');
+    if (progressTrack) {
+        progressTrack.setAttribute('aria-valuenow', String(progress));
+        progressTrack.setAttribute('aria-valuetext', `${done} of ${total} tasks completed`);
+    }
 
     renderUpcoming(tasks);
     renderRecentActivity();
