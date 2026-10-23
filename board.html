@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/workspace.css">
     <link rel="stylesheet" href="css/board.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body class="app-body">
     <div class="app-shell">
@@ -59,12 +60,13 @@
                     <div>
                         <span class="eyebrow">GOOD TO SEE YOU</span>
                         <h2>Keep the momentum, <span data-current-user>User</span>.</h2>
-                        <p>Finish prerequisites first, unlock dependent work, and keep your project moving.</p>
+                        <p>A clear plan. A small step. A little more room for what matters.</p>
                     </div>
                     <button class="primary large" id="hero-add-task">Create a task</button>
                 </div>
 
-                <div class="metric-grid">
+                <div class="dashboard-section-heading"><h2>Your work, at a glance</h2><button class="text-button" data-view-target="board">Open your board ↗</button></div>
+                <div class="metric-grid" aria-label="Task overview">
                     <article class="metric-card"><span>Total tasks</span><strong id="metric-total">0</strong><small>Across the workspace</small></article>
                     <article class="metric-card"><span>To do</span><strong id="metric-todo">0</strong><small>Ready or waiting</small></article>
                     <article class="metric-card"><span>In progress</span><strong id="metric-progress">0</strong><small>Currently active</small></article>
@@ -79,7 +81,8 @@
                             <strong id="progress-percent">0%</strong>
                         </div>
                         <div class="progress-track"><div id="progress-bar-fill"></div></div>
-                        <p>Progress is calculated from tasks moved to Done.</p>
+                        <p>Every completed task is another step forward.</p>
+                        <button class="text-button" data-view-target="graph">See how your tasks connect →</button>
                     </article>
 
                     <article class="panel weather-panel">
@@ -87,16 +90,16 @@
                             <div><span class="eyebrow">FOCUS WEATHER</span><h3>Plan your session</h3></div>
                             <strong id="weather-temp">--°C</strong>
                         </div>
-                        <p id="weather-copy">Use your location to load current weather through a REST API.</p>
+                        <p id="weather-copy">A little context for your day. Load the weather near you.</p>
                         <button class="secondary compact" id="weather-button">Load weather</button>
                     </article>
 
-                    <article class="panel">
+                    <article class="panel deadlines-panel">
                         <div class="panel-heading"><div><span class="eyebrow">NEXT UP</span><h3>Upcoming deadlines</h3></div></div>
                         <div id="upcoming-list" class="stack-list"></div>
                     </article>
 
-                    <article class="panel">
+                    <article class="panel recent-panel">
                         <div class="panel-heading"><div><span class="eyebrow">RECENT</span><h3>Activity</h3></div><button class="text-button" data-view-target="activity">View all</button></div>
                         <div id="dashboard-activity" class="stack-list"></div>
                     </article>
