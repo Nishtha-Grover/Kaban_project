@@ -20,6 +20,22 @@ let state = {
 let lockStates = {};
 let subscribers = [];
 let undoStack = [];
+let storageBlocked = false;
+let pendingSnapshot = null;
+
+function storageError(message) {
+    const error = new Error(message);
+    error.name = 'TaskStorageError';
+    return error;
+}
+
+function parseSavedState(saved) {
+    const raw = JSON.parse(saved);
+    if (!raw || typeof raw !== 'object' || !raw.tasks || typeof raw.tasks !== 'object' || Array.isArray(raw.tasks)) {
+        throw new Error('Invalid saved board');
+    }
+    return normalizeState(raw);
+}
 
 function normalizeState(raw) {
     const safe = raw && typeof raw === 'object' ? raw : {};
@@ -40,6 +56,8 @@ function cloneState() {
 }
 
 function rememberForUndo() {
+    if (storageBlocked) throw storageError('Saved tasks could not be loaded. Changes are paused to protect your data. Check browser storage and reload.');
+    pendingSnapshot = { state: cloneState(), undo: [...undoStack] };
     undoStack.push(cloneState());
     if (undoStack.length > 20) undoStack.shift();
 }
@@ -65,6 +83,9 @@ function notify() {
 }
 
 export function loadState() {
+    undoStack = [];
+    pendingSnapshot = null;
+    storageBlocked = false;
     try {
         let saved = localStorage.getItem(getStorageKey());
 
@@ -73,22 +94,36 @@ export function loadState() {
         if (!saved) {
             const legacy = localStorage.getItem(getLegacyStorageKey());
             if (legacy) {
-                const migrated = normalizeState(JSON.parse(legacy));
+                const migrated = parseSavedState(legacy);
                 localStorage.setItem(getStorageKey(), JSON.stringify(migrated));
                 saved = JSON.stringify(migrated);
             }
         }
 
-        state = saved ? normalizeState(JSON.parse(saved)) : { tasks: {}, activities: [] };
+        state = saved ? parseSavedState(saved) : { tasks: {}, activities: [] };
     } catch (error) {
         console.warn('Failed to load saved state.', error);
         state = { tasks: {}, activities: [] };
+        storageBlocked = true;
     }
     recomputeLocks();
+    if (storageBlocked) throw storageError('Saved tasks could not be loaded. Existing browser data is untouched. Check browser storage and reload before editing.');
 }
 
 function saveState() {
-    localStorage.setItem(getStorageKey(), JSON.stringify(state));
+    try {
+        localStorage.setItem(getStorageKey(), JSON.stringify(state));
+    } catch {
+        if (pendingSnapshot) {
+            state = pendingSnapshot.state;
+            undoStack = pendingSnapshot.undo;
+        }
+        pendingSnapshot = null;
+        recomputeLocks();
+        notify();
+        throw storageError('Change not saved: browser storage may be full or disabled. Your previous board has been restored.');
+    }
+    pendingSnapshot = null;
     recomputeLocks();
     notify();
 }
@@ -218,6 +253,8 @@ export function resetBoard() {
 
 export function undoLastAction() {
     if (undoStack.length === 0) return false;
+    if (storageBlocked) throw storageError('Reload your saved board before using Undo.');
+    pendingSnapshot = { state: cloneState(), undo: [...undoStack] };
     state = normalizeState(undoStack.pop());
     saveState();
     return true;

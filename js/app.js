@@ -45,6 +45,14 @@ import { showToast } from './toast.js';
 
 let activeView = 'dashboard';
 let apiTasks = [];
+window.addEventListener('error', event => {
+    if (event.error?.name !== 'TaskStorageError') return;
+    event.preventDefault();
+    showToast(event.error.message, 12000);
+    const notice = document.getElementById('storage-notice');
+    notice.textContent = event.error.message;
+    notice.hidden = false;
+});
 
 
 document.addEventListener('DOMContentLoaded', () => {
