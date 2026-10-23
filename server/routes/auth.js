@@ -4,6 +4,7 @@ import { registerUser } from '../services/registration.js';
 import { loginUser } from '../services/login.js';
 import { issueSession, setSessionCookie, clearSessionCookie } from '../services/session.js';
 import { readConfig } from '../config.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const authRouter = Router();
 authRouter.use((req, res, next) => {
@@ -15,6 +16,10 @@ authRouter.use((req, res, next) => {
         return res.status(415).json({ error: { code: 'JSON_REQUIRED', message: 'Send an application/json request.' } });
     }
     next();
+});
+
+authRouter.get('/me', requireAuth, (req, res) => {
+    res.json({ user: req.user });
 });
 
 authRouter.post('/login', async (req, res, next) => {

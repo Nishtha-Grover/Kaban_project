@@ -94,3 +94,11 @@ Install `jsonwebtoken@9`, then run `node --test scripts/user-model.test.js scrip
 `POST /api/auth/logout` with JSON `{}` clears the matching cookie and returns 204. Clearing a cookie does not invalidate a previously copied token; it expires after one hour. Server-side revocation is not implemented. Authentication POSTs require application/json and reject requests explicitly marked cross-site. No cross-origin CORS access is enabled.
 
 Session tests use a fake user repository for password checks and real JWT signing/verification for token checks. Live HTTP cookies, database login, HTTPS deployment and frontend integration remain to be checked. The next stage adds authentication/owner middleware. HTML login still uses the original demo flow until frontend integration.
+
+## Stage 43: authentication and owner access
+
+`GET /api/auth/me` is now protected. It verifies the session cookie and checks that the account still exists, then returns only the public user fields. Missing, malformed, expired or invalid sessions return 401. A validly formatted cookie with unavailable authentication configuration/database returns 503. This does not convert the demo HTML login into API login yet.
+
+`requireAuth` attaches a trusted `req.user`. `requireOwnedDocument` is reusable middleware for the forthcoming task/attachment routes: it queries by both document ID and authenticated owner ID, ignores client-supplied owner fields, returns 400 for malformed IDs and returns the same 404 for missing or non-owned records. Retrieved documents go into `res.locals.ownedDocument`. It must run after authentication. List/create/update handlers must also enforce ownership when they are implemented; this helper alone does not protect routes that do not use it.
+
+Run `node --test scripts/auth-middleware.test.js`. Tests use real JWTs and fake model lookups to check authentication rejection, deleted accounts, owner scoping and malformed IDs. Real MongoDB and HTTP integration tests remain for the API testing stage.
