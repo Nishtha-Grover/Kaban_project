@@ -1,5 +1,13 @@
 # Task API — stages in progress
 
+## Stage 50: prerequisite completion rules
+
+All updates now pass through `enforcePrerequisites`, which checks the resulting status and prerequisite list together. In progress and Done require every prerequisite to be Done in the same workspace. Missing or foreign references fail that check. Returning a task to To do is allowed without completing its prerequisites. Reopening a Done task is blocked while any owned dependent remains In progress or Done.
+
+The rules also apply to metadata-only edits on active/completed tasks, so old inconsistent data cannot silently pass through an update. To repair such a task, move it to To do or repair its prerequisite list. Conflicts return HTTP 409 with a readable message and `error.fields.status`; invalid statuses return 400. New tasks still start in To do.
+
+Run `node --test scripts/prerequisites.test.js` for status, reopening, replacement-link and repair cases. These tests use controlled database query results. Atomicity across simultaneous requests is still pending the next transaction stage.
+
 ## Stage 49: dependency-cycle validation
 
 PATCH now accepts `dependsOn` as a replacement array (send `[]` to remove all prerequisites), along with the current version. The server loads only the authenticated owner's task graph and runs iterative depth-first search. It rejects self links, duplicate IDs, unavailable references and reachable circular chains with a field error for dependsOn. Shared prerequisites in an acyclic graph are permitted. The explicit DFS stack handles long chains without recursive call-stack overflow.

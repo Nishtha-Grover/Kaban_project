@@ -2,6 +2,7 @@ import { Task } from '../models/Task.js';
 import { Attachment } from '../models/Attachment.js';
 import { validateTaskInput, mapTaskValidation } from './taskValidation.js';
 import { validateDependencyGraph } from './dependencies.js';
+import { enforcePrerequisites } from './prerequisites.js';
 
 function conflict(message) {
     return Object.assign(new Error(message), { status: 409, code: 'TASK_CONFLICT' });
@@ -29,16 +30,7 @@ export async function updateTask(owner, id, input, { tasks = Task } = {}) {
         const graph = await tasks.find({ owner }).select('_id dependsOn').lean();
         changes.dependsOn = validateDependencyGraph(graph, id, changes.dependsOn);
     }
-    const dependencies = changes.dependsOn ?? task.dependsOn;
-    const status = changes.status ?? task.status;
-    if ((changes.status !== undefined || changes.dependsOn !== undefined) && status !== 'todo' && dependencies.length) {
-        const completed = await tasks.countDocuments({ owner, _id: { $in: dependencies }, status: 'done' });
-        if (completed !== dependencies.length) throw conflict('Finish all prerequisites before moving this task.');
-    }
-    if (task.status === 'done' && changes.status && changes.status !== 'done' &&
-        await tasks.exists({ owner, dependsOn: id, status: { $ne: 'todo' } })) {
-        throw conflict('Move active dependent tasks back to To do before reopening this task.');
-    }
+    await enforcePrerequisites(tasks, owner, task, changes);
     task.set(changes);
     try { return taskResponse(await task.save()); }
     catch (error) {
