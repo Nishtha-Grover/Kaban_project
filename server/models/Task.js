@@ -31,7 +31,7 @@ const taskSchema = new mongoose.Schema({
         default: [],
         validate: {
             validator: function (ids) {
-                return Array.isArray(ids) && ids.every(id => id != null && String(id) !== String(this._id)) &&
+                return Array.isArray(ids) && ids.length <= 100 && ids.every(id => id != null && String(id) !== String(this._id)) &&
                     new Set(ids.map(String)).size === ids.length;
             },
             message: 'Dependencies must be distinct task IDs and cannot include the task itself.'

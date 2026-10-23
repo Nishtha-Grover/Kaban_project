@@ -1,5 +1,6 @@
 import { Task } from '../models/Task.js';
 import { Attachment } from '../models/Attachment.js';
+import { validateTaskInput, mapTaskValidation } from './taskValidation.js';
 
 function conflict(message) {
     return Object.assign(new Error(message), { status: 409, code: 'TASK_CONFLICT' });
@@ -18,17 +19,10 @@ async function ownedTask(tasks, owner, id, version) {
 }
 
 export async function updateTask(owner, id, input, { tasks = Task } = {}) {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) throw invalid('Provide a task JSON object.');
+    validateTaskInput(input, { update: true });
     validTarget(id, input.version);
     const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags', 'status'];
-    if (Object.keys(input).some(key => ![...fields, 'version'].includes(key))) throw invalid('Unsupported update field. Dependency editing is added in the cycle-validation stage.');
     const changes = Object.fromEntries(Object.entries(input).filter(([key]) => fields.includes(key)));
-    if (!Object.keys(changes).length) throw invalid('Provide at least one field to update.');
-    for (const [key, value] of Object.entries(changes)) {
-        if (key === 'tags' ? !Array.isArray(value) || value.some(tag => typeof tag !== 'string') : typeof value !== 'string') {
-            throw invalid(`${key} has an invalid type.`);
-        }
-    }
     const task = await ownedTask(tasks, owner, id, input.version);
     if (changes.status && changes.status !== 'todo' && task.dependsOn.length) {
         const completed = await tasks.countDocuments({ owner, _id: { $in: task.dependsOn }, status: 'done' });
@@ -41,7 +35,7 @@ export async function updateTask(owner, id, input, { tasks = Task } = {}) {
     task.set(changes);
     try { return taskResponse(await task.save()); }
     catch (error) {
-        if (error.name === 'ValidationError') throw invalid(Object.values(error.errors).map(item => item.message).join(' '));
+        if (error.name === 'ValidationError') throw mapTaskValidation(error);
         if (error.name === 'VersionError' || error.name === 'DocumentNotFoundError') throw conflict('This task changed while saving. Reload and retry.');
         throw error;
     }
@@ -75,31 +69,19 @@ export async function createTask(owner, input, {
     countDependencies = filter => Task.countDocuments(filter),
     saveTask = task => task.save()
 } = {}) {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) throw invalid('Provide a task JSON object.');
-    const allowed = ['title', 'description', 'status', 'priority', 'category', 'dueDate', 'tags', 'dependsOn'];
-    if (Object.keys(input).some(key => !allowed.includes(key))) throw invalid('Task contains unsupported fields.');
-    for (const field of ['title', 'description', 'status', 'priority', 'category', 'dueDate']) {
-        if (input[field] !== undefined && typeof input[field] !== 'string') throw invalid(`${field} must be text.`);
-    }
-    if (input.status !== undefined && input.status !== 'todo') throw invalid('New tasks must start in To do.');
-    for (const field of ['tags', 'dependsOn']) {
-        if (input[field] !== undefined && (!Array.isArray(input[field]) || input[field].some(value => typeof value !== 'string'))) {
-            throw invalid(`${field} must be an array of strings.`);
-        }
-    }
-    if (input.dependsOn?.some(id => !/^[a-f0-9]{24}$/i.test(id))) throw invalid('Dependencies must be valid task IDs.');
-    if ((input.dependsOn?.length || 0) > 100) throw invalid('Use at most 100 prerequisites per task.');
+    validateTaskInput(input);
     const task = new Task({ ...input, owner, status: 'todo' });
     try { await task.validate(); }
     catch (error) {
-        if (error.name === 'ValidationError') throw invalid(Object.values(error.errors).map(item => item.message).join(' '));
+        if (error.name === 'ValidationError') throw mapTaskValidation(error);
         throw error;
     }
     if (task.dependsOn.length) {
         const found = await countDependencies({ owner, _id: { $in: task.dependsOn } });
         if (found !== task.dependsOn.length) throw invalid('One or more prerequisites are unavailable in your workspace.');
     }
-    return taskResponse(await saveTask(task));
+    try { return taskResponse(await saveTask(task)); }
+    catch (error) { throw mapTaskValidation(error); }
 }
 
 export async function listTasks(owner, query = {}, { tasks = Task } = {}) {

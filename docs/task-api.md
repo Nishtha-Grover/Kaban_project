@@ -1,5 +1,13 @@
 # Task API — stages in progress
 
+## Stage 48: field-validation responses
+
+Creation and update now share input-type validation before Mongoose casting. Model validation errors return HTTP 400 with `error.code`, a readable `error.message`, and `error.fields` keyed by field name. For example, an impossible date produces `{"error":{"code":"TASK_VALIDATION","message":"Check the highlighted task fields.","fields":{"dueDate":"Use a real date in YYYY-MM-DD format."}}}`. Raw cast errors, submitted objects and internal model details are not echoed.
+
+Mongoose still enforces required fields, enum values, text lengths, valid calendar dates and array rules. The 100-prerequisite cap is now also enforced at schema level. Unsupported fields and empty patches fail before querying the database. Frontend display of these server field errors remains part of API integration.
+
+Run `node --test scripts/task-validation.test.js scripts/task-mutations.test.js scripts/tasks-service.test.js scripts/task-model.test.js` to check the shared validation and existing task behavior without MongoDB.
+
 ## Stage 47: update and delete
 
 `PATCH /api/tasks/:id` accepts a JSON object with the current `version` from the task list and at least one editable field: title, description, priority, category, dueDate, tags or status. Example: `{"version":0,"title":"Updated assignment"}`. It returns `{ "task": ... }` with the saved version. Owner/ID/timestamp changes are rejected. Dependency editing is deferred to server cycle validation; do not send dependsOn in PATCH yet.
