@@ -2,6 +2,7 @@ import { getTasks, getLockState, deleteTask } from './state.js';
 import { setupDragAndDrop, moveTask } from './dragdrop.js';
 import { showToast } from './toast.js';
 import { isOverdue, isDueSoon, deadlineLabel } from './deadlines.js';
+import { sortTasks } from './taskSort.js';
 
 let filters = {
     search: '',
@@ -80,15 +81,7 @@ function applyFilters(tasks) {
         return true;
     });
 
-    return filtered.sort((a, b) => {
-        switch (filters.sort) {
-            case 'due-asc': return compareDates(a.dueDate, b.dueDate);
-            case 'priority-desc': return priorityRank(b.priority) - priorityRank(a.priority);
-            case 'title-asc': return a.title.localeCompare(b.title);
-            case 'created-asc': return new Date(a.createdAt) - new Date(b.createdAt);
-            default: return new Date(b.createdAt) - new Date(a.createdAt);
-        }
-    });
+    return sortTasks(filtered, filters.sort);
 }
 
 function createTaskElement(task, allTasks, lockState) {
@@ -259,17 +252,6 @@ export function populateCategoryFilter() {
     select.innerHTML = '<option value="all">All categories</option>' +
         categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
     select.value = categories.includes(current) ? current : 'all';
-}
-
-function compareDates(a, b) {
-    if (!a && !b) return 0;
-    if (!a) return 1;
-    if (!b) return -1;
-    return new Date(a) - new Date(b);
-}
-
-function priorityRank(priority) {
-    return { low: 1, medium: 2, high: 3, urgent: 4 }[priority] || 0;
 }
 
 function priorityLabel(priority) {
