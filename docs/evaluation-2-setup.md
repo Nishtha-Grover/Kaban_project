@@ -58,3 +58,19 @@ Port 3000 and port 4173 are different browser origins. Your existing localStorag
 Keep the API terminal running and use a separate terminal for Git. Once you have opened the frontend on 3000, you can stop the old Python preview using Ctrl+C in its terminal.
 
 Browser checks: load all four pages; create a demo account; import a library template; confirm `/api/health` still works; confirm `/.env`, `/server/config.js` and `/package.json` return 404 rather than file contents.
+
+## Stage 40: User Mongoose model
+
+Install Mongoose and run the database-independent model checks:
+
+```bash
+npm install mongoose@8
+node --test scripts/user-model.test.js
+npm run check
+```
+
+Commit both `package.json` and `package-lock.json` after installation so the team uses the same resolved dependency version. The model is in `server/models/User.js`. Usernames are trimmed, lowercased, 3–32 characters and limited to letters, numbers, underscores and hyphens. Display names are optional and limited to 80 characters. Created/updated timestamps are automatic. A unique username index is declared; actual uniqueness requires index creation in MongoDB and duplicate-key handling in registration.
+
+Only bcrypt-format password hashes are accepted. Hashes are excluded from normal queries and removed from model JSON/object output. Login will explicitly select the hash for comparison; raw/lean query results must never be returned as authentication responses. The model does not hash passwords itself; registration will add bcrypt in the next stage.
+
+The model checks cover normalization, validation, serialization and index declarations without connecting to MongoDB. They do not test persistence, database uniqueness, password hashing or authentication. This stage does not connect the database or change browser-local login; existing demo accounts are not migrated automatically.
