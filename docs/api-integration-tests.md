@@ -29,3 +29,21 @@ tests including their parent). Initial sandbox socket denial was resolved by
 granting network access for the isolated localhost test servers. This result
 does not verify production HTTPS, Atlas, deployment or frontend integration.
 Dependency/upload integration tests are stage 64.
+
+## Dependency and upload integration — stage 64
+
+Run `npm run test:api:files`. It reuses the isolated replica-set fixture and tests:
+
+- Cycle rejection, prerequisite completion, blocked reopening and deletion.
+- Two simultaneous opposite dependency updates: only one succeeds, leaving no cycle.
+- Real multipart upload persistence across metadata, bytes and activity records.
+- Disallowed extensions, spoofed content, empty/oversized files, wrong multipart
+  fields, foreign owners and unauthenticated requests without unwanted records.
+- Download bytes, attachment/nosniff headers, HEAD responses and owner isolation.
+- Deliberate failure after an upload inside a transaction: file bytes, metadata
+  and activity are all rolled back in the actual database.
+
+Verified locally on 24 October 2026: all six scenarios passed (seven tests
+including the parent). Network permission was needed for temporary localhost
+listeners. The fixture cleaned up its database after the run. These results
+validate real MongoDB/HTTP behavior locally, not Atlas or deployed hosting limits.
