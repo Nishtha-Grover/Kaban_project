@@ -79,6 +79,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderEverything();
     switchView('dashboard');
+    // Keep deadline labels current when the workspace stays open overnight.
+    let calendarDay = new Date().toDateString();
+    const refreshDeadlines = () => {
+        const today = new Date().toDateString();
+        if (today !== calendarDay) {
+            calendarDay = today;
+            renderEverything();
+        }
+    };
+    window.setInterval(refreshDeadlines, 60000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshDeadlines();
+    });
 });
 
 

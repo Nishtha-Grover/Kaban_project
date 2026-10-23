@@ -1,4 +1,5 @@
 import { getTasks, getActivities, getLockState } from './state.js';
+import { daysUntil, deadlineLabel, isOverdue } from './deadlines.js';
 
 export function renderDashboard() {
     const tasks = Object.values(getTasks());
@@ -28,7 +29,7 @@ function renderUpcoming(tasks) {
     if (!container) return;
 
     const upcoming = tasks
-        .filter(task => task.dueDate && task.status !== 'done')
+        .filter(task => daysUntil(task.dueDate) !== null && task.status !== 'done')
         .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
         .slice(0, 5);
 
@@ -38,15 +39,14 @@ function renderUpcoming(tasks) {
     }
 
     container.innerHTML = upcoming.map(task => {
-        const date = new Date(`${task.dueDate}T00:00:00`);
-        const label = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
+        const label = deadlineLabel(task);
         return `
             <div class="deadline-row">
                 <div>
                     <strong>${escapeHtml(task.title)}</strong>
                     <span>${escapeHtml(task.category || 'General')}</span>
                 </div>
-                <time>${label}</time>
+                <time datetime="${task.dueDate}" class="${isOverdue(task) ? 'deadline-overdue' : ''}">${label}</time>
             </div>
         `;
     }).join('');

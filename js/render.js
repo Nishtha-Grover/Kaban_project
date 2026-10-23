@@ -1,6 +1,7 @@
 import { getTasks, getLockState, deleteTask } from './state.js';
 import { setupDragAndDrop, moveTask } from './dragdrop.js';
 import { showToast } from './toast.js';
+import { isOverdue, isDueSoon, deadlineLabel } from './deadlines.js';
 
 let filters = {
     search: '',
@@ -170,7 +171,7 @@ function createTaskElement(task, allTasks, lockState) {
         due.dateTime = task.dueDate;
         const overdue = isOverdue(task, new Date());
         due.className = overdue ? 'meta-item overdue' : 'meta-item';
-        due.textContent = `${overdue ? 'Overdue ·' : 'Due'} ${formatDate(task.dueDate)}`;
+        due.textContent = deadlineLabel(task);
         meta.appendChild(due);
     }
 
@@ -256,19 +257,6 @@ export function populateCategoryFilter() {
     select.value = categories.includes(current) ? current : 'all';
 }
 
-function isOverdue(task, now) {
-    if (!task.dueDate || task.status === 'done') return false;
-    const due = new Date(`${task.dueDate}T23:59:59`);
-    return due < now;
-}
-
-function isDueSoon(task, now) {
-    if (!task.dueDate || task.status === 'done') return false;
-    const due = new Date(`${task.dueDate}T23:59:59`);
-    const diff = due - now;
-    return diff >= 0 && diff <= 3 * 24 * 60 * 60 * 1000;
-}
-
 function compareDates(a, b) {
     if (!a && !b) return 0;
     if (!a) return 1;
@@ -282,10 +270,6 @@ function priorityRank(priority) {
 
 function priorityLabel(priority) {
     return { low: 'Low', medium: 'Medium', high: 'High', urgent: 'Urgent' }[priority] || 'Medium';
-}
-
-function formatDate(date) {
-    return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(`${date}T00:00:00`));
 }
 
 function escapeHtml(value) {
