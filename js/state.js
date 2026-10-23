@@ -3,13 +3,11 @@ import { getSessionUsername } from './auth.js';
 import { normalizeTask, TASK_STATUSES } from './taskModel.js';
 
 function getStorageKey() {
-    const session = getSessionUsername();
-    return session ? `flowforge-board-${session}` : 'flowforge-board-anonymous';
+    return `flowforge-board-${workspaceOwner}`;
 }
 
 function getLegacyStorageKey() {
-    const session = getSessionUsername();
-    return session ? `kanban-board-${session}` : 'kanban-board-anonymous';
+    return `kanban-board-${workspaceOwner}`;
 }
 
 let state = {
@@ -22,6 +20,13 @@ let subscribers = [];
 let undoStack = [];
 let storageBlocked = false;
 let pendingSnapshot = null;
+let workspaceOwner = null;
+
+function assertWorkspaceOwner() {
+    if (!workspaceOwner || getSessionUsername() !== workspaceOwner) {
+        throw storageError('Your account changed or signed out. Reload to open the current account’s workspace. No changes were saved.');
+    }
+}
 
 function storageError(message) {
     const error = new Error(message);
@@ -56,6 +61,7 @@ function cloneState() {
 }
 
 function rememberForUndo() {
+    assertWorkspaceOwner();
     if (storageBlocked) throw storageError('Saved tasks could not be loaded. Changes are paused to protect your data. Check browser storage and reload.');
     pendingSnapshot = { state: cloneState(), undo: [...undoStack] };
     undoStack.push(cloneState());
@@ -83,9 +89,16 @@ function notify() {
 }
 
 export function loadState() {
+    workspaceOwner = getSessionUsername();
+    state = { tasks: {}, activities: [] };
+    lockStates = {};
     undoStack = [];
     pendingSnapshot = null;
     storageBlocked = false;
+    if (!workspaceOwner) {
+        storageBlocked = true;
+        throw storageError('Log in before loading a workspace.');
+    }
     try {
         let saved = localStorage.getItem(getStorageKey());
 
@@ -112,6 +125,7 @@ export function loadState() {
 
 function saveState() {
     try {
+        assertWorkspaceOwner();
         localStorage.setItem(getStorageKey(), JSON.stringify(state));
     } catch {
         if (pendingSnapshot) {
@@ -252,6 +266,7 @@ export function resetBoard() {
 }
 
 export function undoLastAction() {
+    assertWorkspaceOwner();
     if (undoStack.length === 0) return false;
     if (storageBlocked) throw storageError('Reload your saved board before using Undo.');
     pendingSnapshot = { state: cloneState(), undo: [...undoStack] };
