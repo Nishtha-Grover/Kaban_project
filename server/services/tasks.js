@@ -1,4 +1,61 @@
 import { Task } from '../models/Task.js';
+import { Attachment } from '../models/Attachment.js';
+
+function conflict(message) {
+    return Object.assign(new Error(message), { status: 409, code: 'TASK_CONFLICT' });
+}
+
+function validTarget(id, version) {
+    if (typeof id !== 'string' || !/^[a-f0-9]{24}$/i.test(id)) throw invalid('A valid task ID is required.');
+    if (!Number.isSafeInteger(version) || version < 0) throw invalid('Provide the task version from your latest task list.');
+}
+
+async function ownedTask(tasks, owner, id, version) {
+    const task = await tasks.findOne({ _id: id, owner });
+    if (!task) throw Object.assign(new Error('Task not found.'), { status: 404, code: 'TASK_NOT_FOUND' });
+    if (task.__v !== version) throw conflict('This task has changed. Reload it before trying again.');
+    return task;
+}
+
+export async function updateTask(owner, id, input, { tasks = Task } = {}) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw invalid('Provide a task JSON object.');
+    validTarget(id, input.version);
+    const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags', 'status'];
+    if (Object.keys(input).some(key => ![...fields, 'version'].includes(key))) throw invalid('Unsupported update field. Dependency editing is added in the cycle-validation stage.');
+    const changes = Object.fromEntries(Object.entries(input).filter(([key]) => fields.includes(key)));
+    if (!Object.keys(changes).length) throw invalid('Provide at least one field to update.');
+    for (const [key, value] of Object.entries(changes)) {
+        if (key === 'tags' ? !Array.isArray(value) || value.some(tag => typeof tag !== 'string') : typeof value !== 'string') {
+            throw invalid(`${key} has an invalid type.`);
+        }
+    }
+    const task = await ownedTask(tasks, owner, id, input.version);
+    if (changes.status && changes.status !== 'todo' && task.dependsOn.length) {
+        const completed = await tasks.countDocuments({ owner, _id: { $in: task.dependsOn }, status: 'done' });
+        if (completed !== task.dependsOn.length) throw conflict('Finish all prerequisites before moving this task.');
+    }
+    if (task.status === 'done' && changes.status && changes.status !== 'done' &&
+        await tasks.exists({ owner, dependsOn: id, status: { $ne: 'todo' } })) {
+        throw conflict('Move active dependent tasks back to To do before reopening this task.');
+    }
+    task.set(changes);
+    try { return taskResponse(await task.save()); }
+    catch (error) {
+        if (error.name === 'ValidationError') throw invalid(Object.values(error.errors).map(item => item.message).join(' '));
+        if (error.name === 'VersionError' || error.name === 'DocumentNotFoundError') throw conflict('This task changed while saving. Reload and retry.');
+        throw error;
+    }
+}
+
+export async function deleteTask(owner, id, input, { tasks = Task, attachments = Attachment } = {}) {
+    if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => key !== 'version')) throw invalid('Provide only the task version.');
+    validTarget(id, input.version);
+    await ownedTask(tasks, owner, id, input.version);
+    if (await tasks.exists({ owner, dependsOn: id })) throw conflict('Remove dependent task links before deleting this task.');
+    if (await attachments.exists({ owner, task: id })) throw conflict('Remove task attachments before deleting this task.');
+    const result = await tasks.deleteOne({ _id: id, owner, __v: input.version });
+    if (result.deletedCount !== 1) throw conflict('This task changed while deleting. Reload and retry.');
+}
 
 function invalid(message) {
     return Object.assign(new Error(message), { status: 400, code: 'TASK_VALIDATION' });

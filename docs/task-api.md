@@ -1,5 +1,15 @@
 # Task API — stages in progress
 
+## Stage 47: update and delete
+
+`PATCH /api/tasks/:id` accepts a JSON object with the current `version` from the task list and at least one editable field: title, description, priority, category, dueDate, tags or status. Example: `{"version":0,"title":"Updated assignment"}`. It returns `{ "task": ... }` with the saved version. Owner/ID/timestamp changes are rejected. Dependency editing is deferred to server cycle validation; do not send dependsOn in PATCH yet.
+
+`DELETE /api/tasks/:id` accepts JSON `{"version":0}` and returns 204 with no body. Deletion is refused while another task references it or it has attachments. Missing and non-owned tasks both return 404; invalid input returns 400; stale versions and dependency conflicts return 409. Reload the task list after a conflict. These checks avoid silently overwriting a newer edit.
+
+Basic status transitions check completed prerequisites and active dependents. Multi-document checks are not yet transactional: simultaneous dependency/file changes can still race. The scheduled cycle, prerequisite and transaction stages will complete these guarantees before deployment. Audit records are also pending.
+
+Run `node --test scripts/task-mutations.test.js scripts/tasks-service.test.js scripts/task-model.test.js`. Mutation checks use real model validation with fake database operations; live HTTP/MongoDB integration remains pending.
+
 All `/api/tasks` routes require the JWT session cookie, an existing user and a connected database. HTML board integration is still pending; browser-local tasks are not automatically imported.
 
 ## Create
