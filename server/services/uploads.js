@@ -1,17 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { Attachment, MAX_ATTACHMENT_BYTES } from '../models/Attachment.js';
-
-export function uploadError(message, status = 400) {
-    return Object.assign(new Error(message), { status, code: 'UPLOAD_INVALID' });
-}
+import { Attachment } from '../models/Attachment.js';
+import { validateUpload, uploadError } from './uploadValidation.js';
+export { uploadError } from './uploadValidation.js';
 
 export async function saveUpload(owner, taskId, file, context) {
-    if (!file || !Buffer.isBuffer(file.buffer) || !file.buffer.length) throw uploadError('Choose a non-empty file.');
-    if (file.buffer.length > MAX_ATTACHMENT_BYTES) throw uploadError('File exceeds 10 MiB.', 413);
+    const validated = validateUpload(file);
     const task = await context.tasks.findOne({ _id: taskId, owner });
     if (!task) throw uploadError('Task not found.', 404);
-    const metadata = new Attachment({ owner, task: taskId, originalName: file.originalname,
-        mimeType: file.mimetype, storageKey: randomUUID(), size: file.buffer.length });
+    const metadata = new Attachment({ owner, task: taskId, originalName: validated.originalName,
+        mimeType: validated.mimeType, storageKey: randomUUID(), size: validated.size });
     try { await metadata.validate(); }
     catch { throw uploadError('Invalid filename or file metadata.'); }
     // Both inserts and the audit belong to the same transaction. Retry-safe: no disk writes.

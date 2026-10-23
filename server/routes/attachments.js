@@ -5,8 +5,13 @@ import { Task } from '../models/Task.js';
 import { MAX_ATTACHMENT_BYTES } from '../models/Attachment.js';
 import { runWorkspaceTransaction } from '../services/transactions.js';
 import { saveUpload, uploadError } from '../services/uploads.js';
+import { validateUploadMetadata } from '../services/uploadValidation.js';
 
 export const parseUpload = multer({ storage: multer.memoryStorage(),
+    fileFilter(req, file, callback) {
+        try { validateUploadMetadata(file); callback(null, true); }
+        catch (error) { callback(error); }
+    },
     limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1, fields: 0, parts: 1 }
 }).single('file');
 

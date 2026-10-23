@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { parseUpload } from '../server/routes/attachments.js';
 import { saveUpload } from '../server/services/uploads.js';
+import { MAX_ATTACHMENT_BYTES } from '../server/models/Attachment.js';
 
 const owner = 'a'.repeat(24), taskId = 'b'.repeat(24);
 const file = { originalname: 'notes.txt', mimetype: 'text/plain', buffer: Buffer.from('Notes') };
@@ -41,9 +42,9 @@ test('invalid filenames fail before storing bytes; audit errors propagate to tra
     await assert.rejects(saveUpload(owner, taskId, file, context), /audit failed/);
 });
 
-async function multipart(field = 'file') {
+async function multipart(field = 'file', content = 'Notes', filename = 'notes.txt') {
     const boundary = 'flowforge-test-boundary';
-    const body = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="notes.txt"\r\nContent-Type: text/plain\r\n\r\nNotes\r\n--${boundary}--\r\n`);
+    const body = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: text/plain\r\n\r\n${content}\r\n--${boundary}--\r\n`);
     const req = Readable.from([body]);
     req.headers = { 'content-type': `multipart/form-data; boundary=${boundary}`, 'content-length': String(body.length) };
     await new Promise((resolve, reject) => parseUpload(req, {}, error => error ? reject(error) : resolve()));
@@ -56,4 +57,8 @@ test('real Multer parses one multipart file into a Buffer', async () => {
 });
 test('real Multer rejects an unexpected file field', async () => {
     await assert.rejects(multipart('unexpected'), { code: 'LIMIT_UNEXPECTED_FILE' });
+});
+test('real Multer rejects oversized payloads and disallowed extensions', async () => {
+    await assert.rejects(multipart('file', 'a'.repeat(MAX_ATTACHMENT_BYTES + 1)), { code: 'LIMIT_FILE_SIZE' });
+    await assert.rejects(multipart('file', 'text', 'script.exe'), { status: 415 });
 });
