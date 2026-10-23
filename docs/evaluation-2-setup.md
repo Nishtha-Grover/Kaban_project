@@ -110,3 +110,11 @@ Run `node --test scripts/auth-middleware.test.js`. Tests use real JWTs and fake 
 Run `node --test scripts/task-model.test.js` for database-independent validation checks. Task saves reject missing owners, invalid enum values, impossible dates, duplicate/oversized tags, self dependencies and repeated dependency IDs. Unknown fields are rejected. Route handlers must assign ownership from authentication and validate request types before Mongoose casting.
 
 ObjectId references alone do not enforce foreign-key integrity. Dependency existence, matching owners, cycle detection and prerequisite completion are upcoming API rules, not guarantees of this schema. Task endpoints, index creation in the connected database and browser integration are still pending. Existing localStorage tasks remain unchanged.
+
+## Stage 45: Activity and Attachment schemas
+
+Activity records contain the authenticated owner, optional task reference, action, message snapshot and creation timestamp. Their declared immutable fields express append-only application intent; this is not a tamper-proof database audit mechanism. Audit writing and access controls are added with the API stages. Messages must not contain passwords, tokens or other secrets.
+
+Attachment records contain owner/task references, original filename, private generated storage key, MIME type, byte size and timestamps. File size is limited to 10 MiB and must be a positive integer. Paths/control characters are rejected in display filenames, and storage keys are hidden from ordinary queries and serialization. Actual file bytes are not stored by this model. Upload handlers must verify file content/type, size, ownership and safe storage separately; a MIME string in a document is not proof of the actual file type.
+
+Run `node --test scripts/activity-attachment.test.js`. These database-independent checks cover validation, references, indexes and private-field serialization. Upload/download endpoints, actual audit records, database index creation and persistent deployment storage remain upcoming work. Netlify deployment must use durable storage for uploaded files and audit history; function-local files cannot be treated as permanent storage.
