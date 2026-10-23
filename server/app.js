@@ -1,6 +1,7 @@
 import express from 'express';
 import { databaseReady } from './database.js';
 import { authRouter } from './routes/auth.js';
+import { tasksRouter } from './routes/tasks.js';
 import { mountFrontend } from './frontend.js';
 
 export function createApp() {
@@ -15,6 +16,7 @@ export function createApp() {
     });
 
     app.use('/api/auth', authRouter);
+    app.use('/api/tasks', tasksRouter);
     mountFrontend(app);
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });
