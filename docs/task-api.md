@@ -1,5 +1,13 @@
 # Task API — stages in progress
 
+## Stage 49: dependency-cycle validation
+
+PATCH now accepts `dependsOn` as a replacement array (send `[]` to remove all prerequisites), along with the current version. The server loads only the authenticated owner's task graph and runs iterative depth-first search. It rejects self links, duplicate IDs, unavailable references and reachable circular chains with a field error for dependsOn. Shared prerequisites in an acyclic graph are permitted. The explicit DFS stack handles long chains without recursive call-stack overflow.
+
+When adding prerequisites to an active/completed task, the resulting prerequisite set must already be complete, unless the same edit moves the task to To do. Existing creation checks still require prerequisites in the same workspace; new tasks cannot be referenced before they exist.
+
+These validations use a graph snapshot. Preventing simultaneous edits to separate tasks from introducing a cycle still requires the upcoming transaction/concurrency stage. Tests cover a 20,000-node chain, indirect cycles, shared dependencies, missing references and owner-scoped update integration with fake database calls. Run `node --test scripts/dependency-cycle.test.js`.
+
 ## Stage 48: field-validation responses
 
 Creation and update now share input-type validation before Mongoose casting. Model validation errors return HTTP 400 with `error.code`, a readable `error.message`, and `error.fields` keyed by field name. For example, an impossible date produces `{"error":{"code":"TASK_VALIDATION","message":"Check the highlighted task fields.","fields":{"dueDate":"Use a real date in YYYY-MM-DD format."}}}`. Raw cast errors, submitted objects and internal model details are not echoed.
@@ -10,7 +18,7 @@ Run `node --test scripts/task-validation.test.js scripts/task-mutations.test.js 
 
 ## Stage 47: update and delete
 
-`PATCH /api/tasks/:id` accepts a JSON object with the current `version` from the task list and at least one editable field: title, description, priority, category, dueDate, tags or status. Example: `{"version":0,"title":"Updated assignment"}`. It returns `{ "task": ... }` with the saved version. Owner/ID/timestamp changes are rejected. Dependency editing is deferred to server cycle validation; do not send dependsOn in PATCH yet.
+`PATCH /api/tasks/:id` accepts a JSON object with the current `version` from the task list and at least one editable field: title, description, priority, category, dueDate, tags, status or dependsOn. Example: `{"version":0,"title":"Updated assignment"}`. It returns `{ "task": ... }` with the saved version. Owner/ID/timestamp changes are rejected. Dependency editing was enabled in Stage 49.
 
 `DELETE /api/tasks/:id` accepts JSON `{"version":0}` and returns 204 with no body. Deletion is refused while another task references it or it has attachments. Missing and non-owned tasks both return 404; invalid input returns 400; stale versions and dependency conflicts return 409. Reload the task list after a conflict. These checks avoid silently overwriting a newer edit.
 

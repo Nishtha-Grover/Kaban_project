@@ -1,6 +1,7 @@
 import { Task } from '../models/Task.js';
 import { Attachment } from '../models/Attachment.js';
 import { validateTaskInput, mapTaskValidation } from './taskValidation.js';
+import { validateDependencyGraph } from './dependencies.js';
 
 function conflict(message) {
     return Object.assign(new Error(message), { status: 409, code: 'TASK_CONFLICT' });
@@ -21,12 +22,18 @@ async function ownedTask(tasks, owner, id, version) {
 export async function updateTask(owner, id, input, { tasks = Task } = {}) {
     validateTaskInput(input, { update: true });
     validTarget(id, input.version);
-    const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags', 'status'];
+    const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags', 'status', 'dependsOn'];
     const changes = Object.fromEntries(Object.entries(input).filter(([key]) => fields.includes(key)));
     const task = await ownedTask(tasks, owner, id, input.version);
-    if (changes.status && changes.status !== 'todo' && task.dependsOn.length) {
-        const completed = await tasks.countDocuments({ owner, _id: { $in: task.dependsOn }, status: 'done' });
-        if (completed !== task.dependsOn.length) throw conflict('Finish all prerequisites before moving this task.');
+    if (changes.dependsOn !== undefined) {
+        const graph = await tasks.find({ owner }).select('_id dependsOn').lean();
+        changes.dependsOn = validateDependencyGraph(graph, id, changes.dependsOn);
+    }
+    const dependencies = changes.dependsOn ?? task.dependsOn;
+    const status = changes.status ?? task.status;
+    if ((changes.status !== undefined || changes.dependsOn !== undefined) && status !== 'todo' && dependencies.length) {
+        const completed = await tasks.countDocuments({ owner, _id: { $in: dependencies }, status: 'done' });
+        if (completed !== dependencies.length) throw conflict('Finish all prerequisites before moving this task.');
     }
     if (task.status === 'done' && changes.status && changes.status !== 'done' &&
         await tasks.exists({ owner, dependsOn: id, status: { $ne: 'todo' } })) {

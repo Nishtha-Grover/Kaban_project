@@ -11,7 +11,7 @@ export function validateTaskInput(input, { update = false } = {}) {
         throw taskValidationError({ body: 'Provide a task JSON object.' });
     }
     const fields = Object.create(null);
-    const allowed = [...textFields, 'tags', ...(update ? ['version'] : ['dependsOn'])];
+    const allowed = [...textFields, 'tags', 'dependsOn', ...(update ? ['version'] : [])];
     if (Object.keys(input).some(key => !allowed.includes(key))) fields.body = 'Remove unsupported task fields.';
     for (const field of textFields) {
         if (Object.hasOwn(input, field) && typeof input[field] !== 'string') fields[field] = 'Must be text.';
