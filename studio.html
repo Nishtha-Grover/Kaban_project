@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="css/studio.css">
     <link rel="stylesheet" href="css/studioExplorer.css">
     <link rel="stylesheet" href="css/studioRelationships.css">
+    <link rel="stylesheet" href="css/studioInsights.css">
+    <script type="module" src="js/studioInsights.js"></script>
     <script type="module" src="js/studio.js"></script>
 </head>
 <body class="studio-body">
@@ -41,6 +43,16 @@
             <div class="studio-panel-footer"><button class="studio-text-button" id="documents-previous" type="button" disabled>← Previous</button><span id="documents-page">No documents loaded</span><button class="studio-text-button" id="documents-next" type="button" disabled>Next →</button></div>
         </section>
         <div class="studio-grid">
+            <section class="studio-panel studio-insight-panel" aria-labelledby="insights-title">
+                <div class="studio-panel-heading"><div><p class="eyebrow">THE BIGGER PICTURE</p><h2 id="insights-title">From documents to insights.</h2></div><button class="secondary" id="insights-refresh" type="button">Refresh insights ↻</button></div>
+                <p class="studio-description" id="insights-status" role="status">Load your database statistics and index status.</p>
+                <div id="insights-content" hidden>
+                    <div class="insight-metrics"><article><span>Tasks</span><strong id="insight-total">—</strong></article><article><span>Completed</span><strong id="insight-completed">—</strong></article><article><span>Completion</span><strong id="insight-percent">—</strong></article><article><span>Dependency links</span><strong id="insight-links">—</strong></article></div>
+                    <div class="insight-charts"><article><h3>Work by status</h3><div id="insight-statuses"></div></article><article><h3>Priority mix</h3><div id="insight-priorities"></div></article><article><h3>Top categories</h3><div id="insight-categories"></div></article></div>
+                    <div class="insight-explanation"><h3>How MongoDB builds this view</h3><ol id="insight-stages"></ol></div>
+                    <div class="insight-indexes"><h3>Task indexes</h3><p>Schema definitions checked against indexes installed in MongoDB. This is not a query-speed benchmark.</p><div id="insight-index-list"></div></div>
+                </div>
+            </section>
             <aside class="studio-collections" aria-label="Database collections"><div class="studio-section-label">COLLECTIONS <span>05</span></div>
                 <nav id="collection-list" aria-label="Choose a collection">
                     <button type="button" data-collection="users" aria-pressed="true"><span class="collection-icon">U</span><span>Users<small>Identity & ownership</small></span><span class="collection-arrow">↗</span></button>

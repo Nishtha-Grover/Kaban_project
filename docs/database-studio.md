@@ -61,3 +61,26 @@ atomic snapshot; concurrent changes may appear on the next refresh.
 `node --test scripts/populate.test.js scripts/explorer.test.js` verifies scope,
 projections, nested filtering, raw ID mode and missing references using test
 doubles. Live MongoDB populate results still require the database connection.
+
+## Aggregation and indexes — stage 60
+
+Authenticated GET `/api/studio/insights` accepts no query parameters. Its fixed
+aggregation starts with the authenticated owner's ObjectId and uses `$facet`,
+`$group`, `$sum`, `$cond`, `$size`, `$sort` and `$limit` to summarize task status,
+priority, top five categories, completed tasks and dependency links. Empty
+workspaces return zero totals; failures never masquerade as empty workspaces.
+The aggregation has a five-second execution limit.
+
+Studio displays these live metrics as cards and bars, plus an explanation of the
+pipeline stages. An authenticated user can refresh after signing in or changing
+tasks. Until connected, the UI shows an error/sign-in state, not sample counts.
+
+The index panel compares Task schema index definitions with `listIndexes()` from
+MongoDB, including compound key order and uniqueness. It reports installed vs
+missing for owner/status and owner/dueDate indexes. These are collection-level
+metadata shared by all workspaces; report counts remain owner-scoped. It does not
+run explain, benchmark performance or claim a query used a particular index.
+
+`node --test scripts/studio-insights.test.js` checks owner casting, output limits,
+empty data, index comparison and error propagation with test doubles. Real
+aggregation execution and index inspection still need live MongoDB verification.
