@@ -465,7 +465,7 @@ function wireImportModal() {
         .getElementById('import-cancel')
         .addEventListener('click', () => {
 
-            modal.classList.add('hidden');
+            closeImportModal();
 
         });
 
@@ -476,13 +476,29 @@ function wireImportModal() {
 
             if (event.target === modal) {
 
-                modal.classList.add('hidden');
+                closeImportModal();
 
             }
 
         }
     );
 
+
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeImportModal();
+        }
+        if (event.key === 'Tab') {
+            const controls = [...modal.querySelectorAll('button, input')].filter(element => !element.disabled && element.getClientRects().length);
+            const first = controls[0], last = controls.at(-1);
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault(); last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault(); first?.focus();
+            }
+        }
+    });
 
     const updateSelection = () => {
         const count = taskList.querySelectorAll('input:checked').length;
@@ -566,9 +582,7 @@ function wireImportModal() {
 
             if (count > 0) {
 
-                modal.classList.add(
-                    'hidden'
-                );
+                closeImportModal();
 
 
                 showToast(
@@ -588,6 +602,13 @@ function wireImportModal() {
 }
 
 
+function closeImportModal() {
+    document.getElementById('import-modal').classList.add('hidden');
+    document.querySelector('.app-shell').inert = false;
+    document.body.classList.remove('library-dialog-open');
+    document.getElementById('import-task-btn').focus();
+}
+
 async function openImportModal() {
 
     const modal =
@@ -606,6 +627,9 @@ async function openImportModal() {
     modal.classList.remove(
         'hidden'
     );
+    document.querySelector('.app-shell').inert = true;
+    document.body.classList.add('library-dialog-open');
+    document.getElementById('library-search').focus();
 
 
     apiTasks = [];

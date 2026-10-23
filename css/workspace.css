@@ -84,3 +84,26 @@
     .workspace-status { display: none; }
     .topbar h1 { font-size: 28px; }
 }
+
+/* Evaluation 1: small screens, long content and keyboard navigation. */
+.workspace, .topbar > div, .form-group, .api-task-option > span { min-width: 0; }
+.quick-filters { flex-wrap: wrap; }
+.api-task-option, .dep-option, .task-card { overflow-wrap: anywhere; }
+.dep-option > span { min-width: 0; }
+.modal { overflow-y: auto; }
+.modal-content { width: min(720px, 100%); max-height: calc(100dvh - 40px); overscroll-behavior: contain; }
+.modal.hidden { visibility: hidden; }
+.library-dialog-open { overflow: hidden; }
+@media (max-width: 620px) {
+    .workspace { padding-inline: 14px; }
+    .modal { padding: 12px; }
+    .modal-content { padding: 18px; max-height: calc(100dvh - 24px); }
+    .modal-actions { flex-wrap: wrap; }
+    .modal-actions button { flex: 1 1 120px; min-height: 44px; }
+    .top-actions { width: 100%; }
+    .top-actions button { flex: 1 1 auto; min-height: 44px; }
+    .quick-filters .chip, .library-tools button { min-height: 44px; }
+    .form-group input, .form-group select, .form-group textarea, .library-tools input { width: 100%; min-width: 0; font-size: 16px; }
+    .timeline-events { margin-left: 4px; padding-left: 12px; }
+    .timeline-events li::before { left: -17px; }
+}

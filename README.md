@@ -8,6 +8,10 @@ The application preserves DFS-based cycle detection and dependency locking while
 
 ---
 
+## Evaluation 1 handoff
+
+See [the assessment guide](docs/evaluation-1.md) for lecture coverage, demo steps, validation status, and the Evaluation 2 boundary.
+
 ## Features
 
 - Productivity dashboard with:
@@ -458,19 +462,19 @@ Because FlowForge uses ES6 modules and the Fetch API, it should be served throug
 Open a terminal inside the project directory:
 
 ```bash
-cd FlowForge_Enhanced
+cd FlowForge
 ```
 
 Start the server:
 
 ```bash
-python3 -m http.server 3000
+python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
 Then open:
 
 ```text
-http://localhost:3000
+http://127.0.0.1:4173
 ```
 
 in your browser.
@@ -561,6 +565,8 @@ The application can be used both as a classroom JavaScript project and as a pers
 ---
 
 # Screenshots
+
+These are original Evaluation 1 reference screenshots; they predate the enhanced interface.
 
 ![Landing Page](docs/screenshots/1_landing.png)
 ![Login](docs/screenshots/2_login.png)
