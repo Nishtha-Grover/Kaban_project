@@ -168,7 +168,9 @@
     <div id="import-modal" class="modal hidden">
         <div class="modal-content import-modal-content">
             <div class="modal-header"><div><span class="eyebrow">COLLEGE TASK LIBRARY</span><h2>Import college tasks</h2><p>Choose useful student tasks such as assignments, exams, labs, coding practice and project work.</p></div></div>
-            <div id="api-status" class="api-status"></div>
+            <div id="api-status" class="api-status" role="status"></div>
+            <div class="library-tools"><label for="library-search">Find a template</label><input id="library-search" type="search" placeholder="Search title, course or category"><button class="secondary" id="library-select-visible" type="button">Select visible</button><button class="secondary" id="library-clear" type="button">Clear selection</button></div>
+            <p id="library-selection" role="status">0 tasks selected</p>
             <div id="api-task-list" class="api-task-list"></div>
             <div class="modal-actions"><button class="secondary" id="import-cancel">Cancel</button><button class="primary" id="import-confirm" disabled>Import selected</button></div>
         </div>

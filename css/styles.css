@@ -383,3 +383,12 @@ h1, h2, h3, .brand, .metric-card strong { font-family: var(--font-heading); }
     .form-grid, .api-task-list { grid-template-columns: 1fr; }
     .landing-nav { padding: 18px; }.hero-wrap { padding: 40px 18px 20px; }.hero-copy h1 { letter-spacing: -2.5px; }.landing-features { padding: 0 18px; grid-template-columns: 1fr; }
 }
+
+/* College library: preview templates before importing them. */
+.library-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.library-tools label { width: 100%; font-weight: 600; }
+.library-tools input { flex: 1 1 180px; min-width: 0; }
+#library-selection { color: var(--muted); font-size: 12px; margin: 12px 0; }
+.api-task-option[hidden] { display: none; }
+.api-task-option:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+.library-description { font-size: 11px; color: var(--muted); line-height: 1.5; }

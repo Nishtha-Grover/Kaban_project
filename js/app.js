@@ -484,26 +484,31 @@ function wireImportModal() {
     );
 
 
-    /*
-     * Enable Import button only when
-     * at least one task is selected.
-     */
-    taskList.addEventListener(
-        'change',
-        () => {
-
-            const checkedTasks =
-                taskList.querySelectorAll(
-                    'input[type="checkbox"]:checked'
-                );
-
-
-            confirmBtn.disabled =
-                checkedTasks.length === 0;
-
-        }
-    );
-
+    const updateSelection = () => {
+        const count = taskList.querySelectorAll('input:checked').length;
+        confirmBtn.disabled = count === 0;
+        confirmBtn.textContent = count ? `Import ${count} selected` : 'Import selected';
+        document.getElementById('library-selection').textContent = `${count} task${count === 1 ? '' : 's'} selected`;
+    };
+    taskList.addEventListener('change', updateSelection);
+    document.getElementById('library-search').addEventListener('input', event => {
+        const query = event.target.value.trim().toLowerCase();
+        taskList.querySelectorAll('.api-task-option').forEach(option => {
+            option.hidden = !option.textContent.toLowerCase().includes(query);
+        });
+        const visible = [...taskList.querySelectorAll('.api-task-option')].filter(option => !option.hidden).length;
+        document.getElementById('api-status').textContent = `${visible} templates match. Selections stay selected while searching.`;
+    });
+    document.getElementById('library-select-visible').addEventListener('click', () => {
+        taskList.querySelectorAll('.api-task-option').forEach(option => {
+            if (!option.hidden) option.querySelector('input').checked = true;
+        });
+        updateSelection();
+    });
+    document.getElementById('library-clear').addEventListener('click', () => {
+        taskList.querySelectorAll('input').forEach(input => input.checked = false);
+        updateSelection();
+    });
 
     confirmBtn.addEventListener(
         'click',
@@ -603,7 +608,11 @@ async function openImportModal() {
     );
 
 
+    apiTasks = [];
     list.innerHTML = '';
+    document.getElementById('library-search').value = '';
+    document.getElementById('library-selection').textContent = '0 tasks selected';
+    confirmBtn.textContent = 'Import selected';
 
 
     status.className =
@@ -653,6 +662,7 @@ async function openImportModal() {
                                 ${escapeHtml(task.title)}
                             </strong>
 
+                            <span class="library-description">${escapeHtml(task.description)}</span>
                             <small>
                                 ${escapeHtml(task.course || 'General')}
                                 ·
