@@ -84,3 +84,31 @@ run explain, benchmark performance or claim a query used a particular index.
 `node --test scripts/studio-insights.test.js` checks owner casting, output limits,
 empty data, index comparison and error propagation with test doubles. Real
 aggregation execution and index inspection still need live MongoDB verification.
+
+## Demo project and JSON export — stage 61
+
+“Add 4 demo tasks” calls authenticated POST `/api/studio/seed` with `{}`. Four
+college-showcase tasks form a dependency diamond: planning precedes prototype and
+presentation, which both precede final review. All begin in To do. Each creation
+uses the normal validation and audit services. Existing tasks remain unchanged.
+
+An internal User.demoSeedVersion marker is claimed under the workspace transaction
+lock. The marker, all four tasks and audit records commit together. Repeated calls
+return alreadySeeded without duplicates; deleting demo tasks does not reset this
+marker. If the client times out, refreshing/retrying is safe. The marker is hidden
+from public account serialization and is not a user-supplied field.
+
+GET `/api/studio/export` returns a downloadable JSON snapshot of the signed-in
+account, tasks, activities and attachment metadata. Reads are sequential within
+the workspace transaction. Explicit field allowlists exclude hashes, internal
+markers, private storage keys and binary content. Up to 1,000 records per
+collection are supported; larger exports fail with 413 instead of truncating.
+This is a metadata export, not a full backup or an implemented restore format.
+
+Both operations require MongoDB transaction support and database authentication.
+Browser-only Evaluation 1 tasks are not included until board integration/migration
+is implemented. Refresh insights after seeding to update charts.
+
+`node --test scripts/studio-data.test.js` checks generated links, repeat behavior,
+failure propagation, export scope and private-field exclusion with test doubles.
+Live transaction, retry and export verification remain pending.

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/studioRelationships.css">
     <link rel="stylesheet" href="css/studioInsights.css">
     <script type="module" src="js/studioInsights.js"></script>
+    <script type="module" src="js/studioData.js"></script>
     <script type="module" src="js/studio.js"></script>
 </head>
 <body class="studio-body">
@@ -29,6 +30,8 @@
         <section class="studio-panel studio-explorer" aria-labelledby="explorer-heading">
             <div class="studio-panel-heading"><div><p class="eyebrow">YOUR LIVE DATABASE</p><h2 id="explorer-heading">Document explorer</h2></div><span class="studio-pill">Read only · your workspace</span></div>
             <p class="studio-description">Choose a collection below to browse its documents. Private hashes, storage keys and file bytes are never displayed.</p>
+            <div class="explorer-actions"><button class="secondary" id="seed-demo" type="button">+ Add 4 demo tasks</button><button class="secondary" id="export-workspace" type="button">Export workspace JSON ↓</button></div>
+            <p class="studio-description" id="studio-data-status" role="status">Demo tasks are added once per account, alongside existing work. JSON exports exclude file bytes and credentials.</p>
             <form id="studio-signin" class="studio-signin" hidden>
                 <p>Sign in with a database account. Evaluation 1 browser-only accounts are separate.</p>
                 <label>Username<input id="studio-username" autocomplete="username" required maxlength="32"></label>

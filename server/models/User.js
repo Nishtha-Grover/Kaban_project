@@ -4,11 +4,13 @@ function publicUser(document, result) {
     delete result.passwordHash;
     delete result.__v;
     delete result.workspaceRevision;
+    delete result.demoSeedVersion;
     return result;
 }
 
 const userSchema = new mongoose.Schema({
     workspaceRevision: { type: Number, default: 0, select: false },
+    demoSeedVersion: { type: Number, default: 0, select: false },
     username: {
         type: String,
         required: [true, 'Username is required.'],

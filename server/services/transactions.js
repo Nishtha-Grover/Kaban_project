@@ -33,6 +33,11 @@ export async function runWorkspaceTransaction(owner, work, {
             const scopedTasks = scopedModel(tasks, session);
             return work({
                 session, tasks: scopedTasks, attachments: scopedModel(attachments, session),
+                claimDemoSeed: async () => {
+                    const claim = await users.updateOne({ _id: owner, demoSeedVersion: { $ne: 1 } },
+                        { $set: { demoSeedVersion: 1 } }, { session, timestamps: false });
+                    return claim.matchedCount === 1;
+                },
                 countDependencies: filter => scopedTasks.countDocuments(filter),
                 saveTask: task => task.save({ session }),
                 saveAttachment: attachment => attachment.save({ session }),
