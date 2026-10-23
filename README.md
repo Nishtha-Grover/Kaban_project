@@ -1,6 +1,24 @@
 # FlowForge — Smart College Task & Dependency Manager
 
-FlowForge is a productivity and dependency-based task management application built using Vanilla HTML, CSS, and JavaScript.
+FlowForge is one college project spanning both evaluations: a Vanilla HTML/CSS/JavaScript workspace extended with Node.js, Express and MongoDB.
+
+## Current setup and assessment
+
+- [Setup and MongoDB Atlas](docs/setup-atlas.md)
+- [Evaluation 2 syllabus mapping and demo guide](docs/evaluation-2-assessment.md)
+- [Live integration test evidence](docs/api-integration-tests.md)
+- [Database Studio](docs/database-studio.md) and [Postman collection guide](docs/postman.md)
+
+Use Node 26 (tested with 26.5), run `npm ci`, configure `.env` following the setup
+guide, and run `npm run dev`. Open http://127.0.0.1:3000/ or
+http://127.0.0.1:3000/studio.html. Keep that terminal running and use another tab
+for Git commands. Do not use the old static preview for backend features.
+
+**Current integration boundary:** the original board/login/signup still use
+browser storage; Database Studio uses the authenticated MongoDB APIs. These are
+parts of the same repository, not separate projects, but the board's backend
+integration and data migration remain unfinished. Deployment is not ready yet.
+The feature descriptions below include the preserved Evaluation 1 functionality.
 
 The project extends a traditional Kanban board into a smart workspace designed especially for college students. It allows students to organize assignments, exams, labs, coding practice, project work, presentations, and other academic tasks while managing priorities, deadlines, and task dependencies.
 
@@ -487,7 +505,7 @@ Install the **Live Server** extension and launch `index.html` using Live Server.
 
 # Data Storage
 
-FlowForge currently uses browser LocalStorage instead of a backend database.
+The Evaluation 1 board currently uses browser LocalStorage. Evaluation 2 backend APIs and Database Studio use MongoDB; the board has not yet been switched to those APIs.
 
 This allows the project to demonstrate client-side persistence while remaining within a Vanilla JavaScript architecture.
 
@@ -516,7 +534,7 @@ It is appropriate for:
 - Academic projects
 - Local personal use
 
-It should **not** be considered production-level authentication because there is no secure backend authentication system.
+The Evaluation 1 browser-only authentication is not production authentication. Evaluation 2 adds bcrypt and JWT cookie authentication on the server, but the original login/signup pages still need integration with it.
 
 ---
 

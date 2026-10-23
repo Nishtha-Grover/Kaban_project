@@ -1,5 +1,10 @@
 # Evaluation 2 setup
 
+> Historical implementation notes. For current instructions use
+> [Setup and Atlas](setup-atlas.md) and [the assessment guide](evaluation-2-assessment.md).
+> The “later stages” and Python preview instructions below describe earlier
+> milestones, not the current recommended launch procedure.
+
 Evaluation 2 builds on the existing frontend in the same repository. It is under development; the Express HTTP server is available, while database and authentication routes arrive in later stages.
 
 ## Requirements
