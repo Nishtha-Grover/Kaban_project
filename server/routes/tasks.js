@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { createTask, listTasks, updateTask, deleteTask } from '../services/tasks.js';
+import { runWorkspaceTransaction } from '../services/transactions.js';
 
 export const tasksRouter = Router();
 tasksRouter.use(requireAuth);
@@ -22,22 +23,25 @@ tasksRouter.use((req, res, next) => {
 });
 
 tasksRouter.post('/', async (req, res, next) => {
-    try { res.status(201).json({ task: await createTask(req.user.id, req.body) }); }
+    try { res.status(201).json({ task: await runWorkspaceTransaction(req.user.id,
+        context => createTask(req.user.id, req.body, context)) }); }
     catch (error) { next(error); }
 });
 
 tasksRouter.patch('/:id', async (req, res, next) => {
-    try { res.json({ task: await updateTask(req.user.id, req.params.id, req.body) }); }
+    try { res.json({ task: await runWorkspaceTransaction(req.user.id,
+        context => updateTask(req.user.id, req.params.id, req.body, context)) }); }
     catch (error) { next(error); }
 });
 
 tasksRouter.delete('/:id', async (req, res, next) => {
-    try { await deleteTask(req.user.id, req.params.id, req.body); res.status(204).end(); }
+    try { await runWorkspaceTransaction(req.user.id,
+        context => deleteTask(req.user.id, req.params.id, req.body, context)); res.status(204).end(); }
     catch (error) { next(error); }
 });
 
 tasksRouter.use((error, req, res, next) => {
-    if (['TASK_VALIDATION', 'TASK_CONFLICT', 'TASK_NOT_FOUND'].includes(error.code)) {
+    if (['TASK_VALIDATION', 'TASK_CONFLICT', 'TASK_NOT_FOUND', 'WORKSPACE_UNAVAILABLE', 'TRANSACTIONS_REQUIRED'].includes(error.code)) {
         return res.status(error.status).json({ error: { code: error.code, message: error.message,
             ...(error.fields ? { fields: error.fields } : {}) } });
     }

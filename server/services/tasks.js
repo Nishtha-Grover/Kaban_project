@@ -20,7 +20,7 @@ async function ownedTask(tasks, owner, id, version) {
     return task;
 }
 
-export async function updateTask(owner, id, input, { tasks = Task } = {}) {
+export async function updateTask(owner, id, input, { tasks = Task, saveTask = task => task.save() } = {}) {
     validateTaskInput(input, { update: true });
     validTarget(id, input.version);
     const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags', 'status', 'dependsOn'];
@@ -32,7 +32,7 @@ export async function updateTask(owner, id, input, { tasks = Task } = {}) {
     }
     await enforcePrerequisites(tasks, owner, task, changes);
     task.set(changes);
-    try { return taskResponse(await task.save()); }
+    try { return taskResponse(await saveTask(task)); }
     catch (error) {
         if (error.name === 'ValidationError') throw mapTaskValidation(error);
         if (error.name === 'VersionError' || error.name === 'DocumentNotFoundError') throw conflict('This task changed while saving. Reload and retry.');
