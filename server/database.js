@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { User } from './models/User.js';
 import { Task } from './models/Task.js';
+import { Activity } from './models/Activity.js';
 
 let ready = false;
 export function databaseReady() {
@@ -12,6 +13,7 @@ export async function connectDatabase(uri) {
     // Ensure duplicate usernames cannot race during registration.
     await User.createIndexes();
     await Task.createIndexes();
+    await Activity.createIndexes();
     ready = true;
     return true;
 }

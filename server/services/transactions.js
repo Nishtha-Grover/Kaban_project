@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { Task } from '../models/Task.js';
 import { Attachment } from '../models/Attachment.js';
+import { Activity } from '../models/Activity.js';
 
 function scopedModel(model, session) {
     return Object.fromEntries(['find', 'findOne', 'countDocuments', 'exists', 'deleteOne']
@@ -10,7 +11,7 @@ function scopedModel(model, session) {
 
 // Callbacks may be retried: keep emails, file operations and HTTP responses outside.
 export async function runWorkspaceTransaction(owner, work, {
-    connection = mongoose.connection, users = User, tasks = Task, attachments = Attachment
+    connection = mongoose.connection, users = User, tasks = Task, attachments = Attachment, activities = Activity
 } = {}) {
     try {
         return await connection.transaction(async session => {
@@ -26,7 +27,9 @@ export async function runWorkspaceTransaction(owner, work, {
             return work({
                 session, tasks: scopedTasks, attachments: scopedModel(attachments, session),
                 countDependencies: filter => scopedTasks.countDocuments(filter),
-                saveTask: task => task.save({ session })
+                saveTask: task => task.save({ session }),
+                recordActivity: ({ task, action, message }) => activities.create(
+                    [{ owner, task, action, message }], { session })
             });
         }, { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' }, readPreference: 'primary' });
     } catch (error) {

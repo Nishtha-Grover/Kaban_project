@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { createTask, listTasks, updateTask, deleteTask } from '../services/tasks.js';
+import { listTasks } from '../services/tasks.js';
+import { mutateTaskWithAudit } from '../services/taskAudit.js';
 import { runWorkspaceTransaction } from '../services/transactions.js';
 
 export const tasksRouter = Router();
@@ -24,19 +25,19 @@ tasksRouter.use((req, res, next) => {
 
 tasksRouter.post('/', async (req, res, next) => {
     try { res.status(201).json({ task: await runWorkspaceTransaction(req.user.id,
-        context => createTask(req.user.id, req.body, context)) }); }
+        context => mutateTaskWithAudit('create', req.user.id, null, req.body, context)) }); }
     catch (error) { next(error); }
 });
 
 tasksRouter.patch('/:id', async (req, res, next) => {
     try { res.json({ task: await runWorkspaceTransaction(req.user.id,
-        context => updateTask(req.user.id, req.params.id, req.body, context)) }); }
+        context => mutateTaskWithAudit('update', req.user.id, req.params.id, req.body, context)) }); }
     catch (error) { next(error); }
 });
 
 tasksRouter.delete('/:id', async (req, res, next) => {
     try { await runWorkspaceTransaction(req.user.id,
-        context => deleteTask(req.user.id, req.params.id, req.body, context)); res.status(204).end(); }
+        context => mutateTaskWithAudit('delete', req.user.id, req.params.id, req.body, context)); res.status(204).end(); }
     catch (error) { next(error); }
 });
 
