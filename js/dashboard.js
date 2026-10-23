@@ -34,26 +34,58 @@ function renderUpcoming(tasks) {
 
     const upcoming = tasks
         .filter(task => daysUntil(task.dueDate) !== null && task.status !== 'done')
-        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-        .slice(0, 5);
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.title.localeCompare(b.title));
 
     if (!upcoming.length) {
         container.innerHTML = '<div class="empty-panel">No upcoming deadlines.</div>';
         return;
     }
 
-    container.innerHTML = upcoming.map(task => {
-        const label = deadlineLabel(task);
-        return `
-            <div class="deadline-row">
-                <div>
-                    <strong>${escapeHtml(task.title)}</strong>
-                    <span>${escapeHtml(task.category || 'General')}</span>
-                </div>
-                <time datetime="${task.dueDate}" class="${isOverdue(task) ? 'deadline-overdue' : ''}">${label}</time>
-            </div>
-        `;
-    }).join('');
+    container.replaceChildren();
+    const now = new Date();
+    const groups = [
+        ['Needs attention', upcoming.filter(task => isOverdue(task, now))],
+        ['Today & coming up', upcoming.filter(task => !isOverdue(task, now))]
+    ];
+    for (const [label, items] of groups) {
+        if (!items.length) continue;
+        const heading = document.createElement('h4');
+        heading.className = 'deadline-group-heading';
+        heading.textContent = `${label} · ${items.length}`;
+        container.appendChild(heading);
+        items.slice(0, 5).forEach(task => {
+            const row = document.createElement('div');
+            row.className = 'deadline-row';
+            const copy = document.createElement('div');
+            copy.className = 'deadline-copy';
+            const title = document.createElement('strong');
+            title.textContent = task.title;
+            const category = document.createElement('span');
+            category.textContent = task.category || 'General';
+            copy.append(title, category);
+            const details = document.createElement('div');
+            details.className = 'deadline-details';
+            const time = document.createElement('time');
+            time.dateTime = task.dueDate;
+            time.textContent = deadlineLabel(task, now);
+            if (isOverdue(task, now)) time.className = 'deadline-overdue';
+            const edit = document.createElement('button');
+            edit.type = 'button';
+            edit.className = 'text-button';
+            edit.textContent = 'Edit ↗';
+            edit.setAttribute('aria-label', `Edit deadline for ${task.title}`);
+            edit.addEventListener('click', () => window.openTaskModal(task.id));
+            details.append(time, edit);
+            row.append(copy, details);
+            container.appendChild(row);
+        });
+        if (items.length > 5) {
+            const more = document.createElement('p');
+            more.className = 'deadline-overflow';
+            more.textContent = `${items.length - 5} more in this group. Open your board to see all tasks.`;
+            container.appendChild(more);
+        }
+    }
 }
 
 function renderRecentActivity() {
