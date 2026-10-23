@@ -6,6 +6,7 @@ import { MAX_ATTACHMENT_BYTES } from '../models/Attachment.js';
 import { runWorkspaceTransaction } from '../services/transactions.js';
 import { saveUpload, uploadError } from '../services/uploads.js';
 import { validateUploadMetadata } from '../services/uploadValidation.js';
+import { createDownloadHandler } from '../services/downloads.js';
 
 export const parseUpload = multer({ storage: multer.memoryStorage(),
     fileFilter(req, file, callback) {
@@ -16,6 +17,7 @@ export const parseUpload = multer({ storage: multer.memoryStorage(),
 }).single('file');
 
 export const attachmentsRouter = Router({ mergeParams: true });
+attachmentsRouter.get('/:attachmentId/download', requireAuth, createDownloadHandler());
 attachmentsRouter.post('/', requireAuth, async (req, res, next) => {
     try {
         if (req.get('Sec-Fetch-Site') === 'cross-site') throw uploadError('Use this application to upload files.', 403);
@@ -39,7 +41,7 @@ attachmentsRouter.use((error, req, res, next) => {
         return res.status(tooLarge ? 413 : 400).json({ error: { code: error.code,
             message: tooLarge ? 'File exceeds 10 MiB.' : 'Upload exactly one file in the file field, with no extra fields.' } });
     }
-    if (['UPLOAD_INVALID', 'TRANSACTIONS_REQUIRED', 'WORKSPACE_UNAVAILABLE'].includes(error.code)) {
+    if (['UPLOAD_INVALID', 'TRANSACTIONS_REQUIRED', 'WORKSPACE_UNAVAILABLE', 'DOWNLOAD_INVALID', 'DOWNLOAD_NOT_FOUND'].includes(error.code)) {
         return res.status(error.status).json({ error: { code: error.code, message: error.message } });
     }
     next(error);

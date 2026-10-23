@@ -18,7 +18,7 @@ without binary control characters, and JSON must parse successfully.
 Signature checks are format screening, not full document decoding or malware
 scanning. PDF scripts, CSV formulas and text contents are not sanitized. Downloads
 must be served as attachments with nosniff rather than executed or embedded.
-Uploads currently have no public download route.
+Stage 56 adds authenticated downloads as described below.
 
 Attachment metadata, private AttachmentBlob bytes and the upload Activity are
 saved in one MongoDB transaction. This avoids filesystem orphan files and keeps
@@ -26,8 +26,7 @@ storage independent of the development Mac. Bytes are excluded from default
 queries and never returned in the upload response. No static uploads directory
 is served. The 10 MiB bound leaves room below MongoDB's document size limit.
 
-This stage has no browser upload interface yet. Protected streamed downloads
-are stage 56. A deployment may impose smaller request limits; final hosting
+This stage has no browser upload interface yet. A deployment may impose smaller request limits; final hosting
 configuration must reconcile those limits before publishing. Memory buffering
 also requires deployment-level request/concurrency limits for public use.
 
@@ -39,3 +38,26 @@ exercise real multipart parsing (including oversized payloads), filename/MIME
 checks, signature mismatches, UTF-8/JSON validation and exact service size limits,
 without a listening server, plus service behavior with persistence test doubles.
 Live authenticated HTTP and MongoDB transaction checks remain pending.
+
+## Protected downloads — stage 56
+
+GET `/api/tasks/:taskId/attachments/:attachmentId/download` requires the session
+cookie. Use the attachment ID returned by the upload response. The task, metadata
+and private blob queries each enforce ownership. Missing/foreign resources return
+the same 404 response; malformed IDs return 400. Stored byte lengths are checked
+against metadata before sending the response.
+
+Downloads use Content-Disposition attachment, application/octet-stream, nosniff
+and private/no-store caching. Express encodes the filename header. Node Readable
+and pipeline deliver 64 KiB chunks with backpressure and close streams on client
+disconnect. HEAD returns headers without file bytes. Range requests currently
+receive the complete file with 200; partial downloads are not implemented.
+
+The bounded MongoDB blob is loaded into memory first: this is streamed HTTP
+delivery, not streaming from MongoDB/GridFS. Downloads do not create audit events
+or claim that the client received the full file. Browser attachment controls are
+still pending frontend integration.
+
+Run `node --test scripts/downloads.test.js` for owner-scoped lookup, byte integrity,
+headers, chunking and disconnected-client tests. These use real Node streams with
+database test doubles; live authenticated HTTP testing remains pending.
