@@ -1,4 +1,5 @@
 import { initTheme, toggleTheme } from './theme.js';
+import { loadDocuments } from './studioExplorer.js';
 
 const schemas = {
     users: { title: 'Users', description: 'Account identity and workspace ownership.',
@@ -45,6 +46,7 @@ function selectCollection(key) {
     document.getElementById('schema-fields').replaceChildren(...rows);
     document.getElementById('json-panel').textContent = '// Schema outline — types only, not a stored document\n'
         + JSON.stringify(Object.fromEntries(schema.fields.map(([name, type]) => [name, `<${type}>`])), null, 2);
+    loadDocuments(key);
 }
 
 async function checkConnection() {

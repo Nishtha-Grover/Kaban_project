@@ -6,6 +6,7 @@
     <title>Database Studio · FlowForge</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/studio.css">
+    <link rel="stylesheet" href="css/studioExplorer.css">
     <script type="module" src="js/studio.js"></script>
 </head>
 <body class="studio-body">
@@ -21,7 +22,21 @@
             <div class="studio-orbit" aria-hidden="true"><div class="orbit-ring"></div><span class="orbit-node node-user">User</span><span class="orbit-node node-task">Task</span><span class="orbit-node node-activity">Activity</span><span class="orbit-center">F<span>connected by design</span></span></div>
         </section>
         <div class="studio-toolbar"><div><span class="studio-dot" id="connection-dot"></span><strong>Database Studio</strong><span class="studio-divider">/</span><span id="connection-status" role="status">Checking connection…</span></div><button class="studio-text-button" id="connection-refresh" type="button">Check connection ↻</button></div>
-        <p class="studio-notice">You’re viewing the schema guide. These are field definitions, not saved documents. The live document explorer comes next.</p>
+        <p class="studio-notice">Explore field definitions below, or browse your saved MongoDB documents in the document explorer.</p>
+        <section class="studio-panel studio-explorer" aria-labelledby="explorer-heading">
+            <div class="studio-panel-heading"><div><p class="eyebrow">YOUR LIVE DATABASE</p><h2 id="explorer-heading">Document explorer</h2></div><span class="studio-pill">Read only · your workspace</span></div>
+            <p class="studio-description">Choose a collection below to browse its documents. Private hashes, storage keys and file bytes are never displayed.</p>
+            <form id="studio-signin" class="studio-signin" hidden>
+                <p>Sign in with a database account. Evaluation 1 browser-only accounts are separate.</p>
+                <label>Username<input id="studio-username" autocomplete="username" required maxlength="32"></label>
+                <label>Password<input id="studio-password" type="password" autocomplete="current-password" required></label>
+                <button class="primary" type="submit">Sign in to database</button>
+            </form>
+            <div class="explorer-actions"><strong id="explorer-collection">Users</strong><button class="secondary" id="documents-refresh" type="button">Refresh documents ↻</button></div>
+            <p id="explorer-status" role="status" class="studio-description">Loading documents…</p>
+            <div id="explorer-documents" class="explorer-documents"></div>
+            <div class="studio-panel-footer"><button class="studio-text-button" id="documents-previous" type="button" disabled>← Previous</button><span id="documents-page">No documents loaded</span><button class="studio-text-button" id="documents-next" type="button" disabled>Next →</button></div>
+        </section>
         <div class="studio-grid">
             <aside class="studio-collections" aria-label="Database collections"><div class="studio-section-label">COLLECTIONS <span>05</span></div>
                 <nav id="collection-list" aria-label="Choose a collection">
@@ -46,7 +61,7 @@
                 <article class="studio-detail-card studio-private"><span class="studio-lock" aria-hidden="true">◇</span><h3>Private by design</h3><p id="privacy-copy"></p></article>
             </aside>
         </div>
-        <section class="studio-roadmap" aria-label="Database showcase roadmap"><div><span class="eyebrow">UP NEXT IN THE STUDIO</span><h2>See the whole picture.</h2></div><article><span>01 / DOCUMENTS</span><h3>Your data, up close</h3><p>Browse your saved documents.</p><small>Coming next</small></article><article><span>02 / RELATIONSHIPS</span><h3>Follow the connections</h3><p>Explore references with populate.</p><small>Planned</small></article><article><span>03 / INSIGHTS</span><h3>More than a collection</h3><p>Discover aggregation and indexes.</p><small>Planned</small></article></section>
+        <section class="studio-roadmap" aria-label="Database showcase roadmap"><div><span class="eyebrow">UP NEXT IN THE STUDIO</span><h2>See the whole picture.</h2></div><article><span>01 / DOCUMENTS</span><h3>Your data, up close</h3><p>Browse your saved documents.</p><small>Available above</small></article><article><span>02 / RELATIONSHIPS</span><h3>Follow the connections</h3><p>Explore references with populate.</p><small>Planned</small></article><article><span>03 / INSIGHTS</span><h3>More than a collection</h3><p>Discover aggregation and indexes.</p><small>Planned</small></article></section>
         <footer class="studio-footer"><span>FlowForge / Database Studio</span><span>A clear view beneath the surface.</span></footer>
     </main>
 </body>

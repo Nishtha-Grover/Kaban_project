@@ -3,6 +3,7 @@ import { databaseReady } from './database.js';
 import { authRouter } from './routes/auth.js';
 import { tasksRouter } from './routes/tasks.js';
 import { attachmentsRouter } from './routes/attachments.js';
+import { studioRouter } from './routes/studio.js';
 import { mountFrontend } from './frontend.js';
 
 export function createApp() {
@@ -17,6 +18,7 @@ export function createApp() {
     });
 
     app.use('/api/auth', authRouter);
+    app.use('/api/studio', studioRouter);
     app.use('/api/tasks/:taskId/attachments', attachmentsRouter);
     app.use('/api/tasks', tasksRouter);
     mountFrontend(app);
