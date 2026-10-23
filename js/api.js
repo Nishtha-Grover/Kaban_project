@@ -1,29 +1,39 @@
 const TASKS_API = './data/student-tasks.json';
 
-export async function fetchExternalTasks() {
-    const response = await fetch(TASKS_API);
-
-    if (!response.ok) {
-        throw new Error(
-            `College task library failed with status ${response.status}`
-        );
+export async function fetchExternalTasks({ timeoutMs = 10000 } = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(TASKS_API, { signal: controller.signal });
+        if (!response.ok) throw new Error('The college library is unavailable. Please retry.');
+        const data = await response.json();
+        if (!Array.isArray(data)) throw new Error('The college library has an invalid format.');
+        const text = (value, fallback = '') => typeof value === 'string' && value.trim() ? value.trim() : fallback;
+        return data.map((item, index) => {
+            if (!item || typeof item !== 'object' || !text(item.title)) {
+                throw new Error(`Library template ${index + 1} is missing a valid title.`);
+            }
+            const course = text(item.course, 'General');
+            const category = text(item.category, 'College');
+            return {
+                externalId: index + 1,
+                title: text(item.title),
+                description: text(item.description),
+                status: 'todo',
+                priority: ['low', 'medium', 'high', 'urgent'].includes(item.priority) ? item.priority : 'medium',
+                category,
+                course,
+                tags: [...new Set([course, category])]
+            };
+        });
+    } catch (error) {
+        if (controller.signal.aborted) throw new Error('Loading the college library timed out. Please retry.');
+        if (error instanceof SyntaxError) throw new Error('The college library contains unreadable JSON.');
+        if (error instanceof TypeError) throw new Error('Could not connect to the college library. Check your connection and retry.');
+        throw error;
+    } finally {
+        clearTimeout(timer);
     }
-
-    const data = await response.json();
-
-    return data.map((item, index) => ({
-        externalId: index + 1,
-        title: item.title,
-        description: item.description || '',
-        status: 'todo',
-        priority: item.priority || 'medium',
-        category: item.category || 'College',
-        course: item.course || 'General',
-        tags: [
-            item.course || 'College',
-            item.category || 'Task'
-        ]
-    }));
 }
 
 // Promise chaining demonstrates lectures 25–26. Every request settles with

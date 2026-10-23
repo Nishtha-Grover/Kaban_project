@@ -603,7 +603,10 @@ function wireImportModal() {
 }
 
 
+let libraryLoadVersion = 0;
+
 function closeImportModal() {
+    libraryLoadVersion += 1;
     document.getElementById('import-modal').classList.add('hidden');
     document.querySelector('.app-shell').inert = false;
     document.body.classList.remove('library-dialog-open');
@@ -611,6 +614,7 @@ function closeImportModal() {
 }
 
 async function openImportModal() {
+    const loadVersion = ++libraryLoadVersion;
 
     const modal =
         document.getElementById('import-modal');
@@ -658,8 +662,10 @@ async function openImportModal() {
 
     try {
 
-        apiTasks =
-            await fetchExternalTasks();
+        const loadedTasks = await fetchExternalTasks();
+        // Closing/reopening must not let an older request overwrite this dialog.
+        if (loadVersion !== libraryLoadVersion) return;
+        apiTasks = loadedTasks;
 
 
         status.className =
@@ -667,7 +673,7 @@ async function openImportModal() {
 
 
         status.textContent =
-            `${apiTasks.length} college tasks available. Select the tasks you want to add.`;
+            apiTasks.length ? `${apiTasks.length} college tasks available. Select the tasks you want to add.` : 'No templates are available in the college library yet.';
 
 
         list.innerHTML =
@@ -711,30 +717,16 @@ async function openImportModal() {
 
     } catch (error) {
 
-        console.error(
-            'College Task Library Error:',
-            error
-        );
-
-
-        status.className =
-            'api-status error';
-
-
-        status.textContent =
-            'Could not load the college task library.';
-
-
-        list.innerHTML = `
-
-            <div class="empty-panel">
-
-                College tasks could not be loaded.
-
-            </div>
-
-        `;
-
+        if (loadVersion !== libraryLoadVersion) return;
+        status.className = 'api-status error';
+        status.textContent = error.message || 'Could not load the college task library.';
+        list.replaceChildren();
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'secondary';
+        retry.textContent = 'Retry loading library';
+        retry.addEventListener('click', openImportModal);
+        list.appendChild(retry);
 
         confirmBtn.disabled = true;
 
