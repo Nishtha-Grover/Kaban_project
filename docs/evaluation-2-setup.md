@@ -102,3 +102,11 @@ Session tests use a fake user repository for password checks and real JWT signin
 `requireAuth` attaches a trusted `req.user`. `requireOwnedDocument` is reusable middleware for the forthcoming task/attachment routes: it queries by both document ID and authenticated owner ID, ignores client-supplied owner fields, returns 400 for malformed IDs and returns the same 404 for missing or non-owned records. Retrieved documents go into `res.locals.ownedDocument`. It must run after authentication. List/create/update handlers must also enforce ownership when they are implemented; this helper alone does not protect routes that do not use it.
 
 Run `node --test scripts/auth-middleware.test.js`. Tests use real JWTs and fake model lookups to check authentication rejection, deleted accounts, owner scoping and malformed IDs. Real MongoDB and HTTP integration tests remain for the API testing stage.
+
+## Stage 44: Task Mongoose schema
+
+`server/models/Task.js` defines owner, title, description, status, priority, category, dueDate, tags and dependency references. It adds timestamps and optimistic concurrency for document saves. Dates stay as validated YYYY-MM-DD calendar strings so a deadline does not shift across time zones. Owner/status and owner/date indexes are declared for board and deadline queries.
+
+Run `node --test scripts/task-model.test.js` for database-independent validation checks. Task saves reject missing owners, invalid enum values, impossible dates, duplicate/oversized tags, self dependencies and repeated dependency IDs. Unknown fields are rejected. Route handlers must assign ownership from authentication and validate request types before Mongoose casting.
+
+ObjectId references alone do not enforce foreign-key integrity. Dependency existence, matching owners, cycle detection and prerequisite completion are upcoming API rules, not guarantees of this schema. Task endpoints, index creation in the connected database and browser integration are still pending. Existing localStorage tasks remain unchanged.
