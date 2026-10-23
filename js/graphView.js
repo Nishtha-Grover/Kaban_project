@@ -1,10 +1,15 @@
-import { getTasks, getLockState } from './state.js';
+import { getTasks, getLockState, getTaskDependencies } from './state.js';
 
 export function renderDependencyGraph() {
     const canvas = document.getElementById('dependency-graph');
     if (!canvas) return;
 
     const tasks = Object.values(getTasks());
+    const allTasks = getTasks();
+    const summary = document.getElementById('graph-summary');
+    const linkCount = tasks.reduce((count, task) => count + (task.dependsOn?.length || 0), 0);
+    const missingCount = tasks.reduce((count, task) => count + getTaskDependencies(task.id).missing.length, 0);
+    if (summary) summary.textContent = `${tasks.length} tasks · ${linkCount} links${missingCount ? ` · ${missingCount} missing references` : ''}. Select a task to edit it; focus or hover to trace its links.`;
     canvas.innerHTML = '';
 
     if (!tasks.length) {
@@ -32,7 +37,17 @@ export function renderDependencyGraph() {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     canvas.appendChild(svg);
 
-    const positions = {};
+    const positions = Object.create(null);
+    const nodes = new Map();
+    const edges = [];
+    const highlight = id => {
+        const related = id ? new Set([id, ...getTaskDependencies(id).prerequisites, ...getTaskDependencies(id).dependents]) : null;
+        nodes.forEach((node, key) => node.classList.toggle('graph-muted', Boolean(related && !related.has(key))));
+        edges.forEach(({line, source, target}) => {
+            line.classList.toggle('graph-traced', Boolean(id && (source === id || target === id)));
+            line.classList.toggle('graph-muted', Boolean(id && source !== id && target !== id));
+        });
+    };
     const statusOrder = ['todo', 'inprogress', 'done'];
 
     statusOrder.forEach((status, colIndex) => {
@@ -47,8 +62,20 @@ export function renderDependencyGraph() {
             const y = 65 + rowIndex * 130;
             positions[task.id] = { x, y, w: colWidth - 48, h: 92 };
 
-            const node = document.createElement('div');
-            node.className = `graph-node ${getLockState(task.id).locked ? 'locked' : ''}`;
+            const node = document.createElement('button');
+            node.type = 'button';
+            node.className = `graph-node ${task.status !== 'done' && getLockState(task.id).locked ? 'locked' : ''}`;
+            const dependencies = getTaskDependencies(task.id);
+            const description = dependencies.prerequisites.map(id => Object.hasOwn(allTasks, id) ? allTasks[id].title : 'Missing task').join(', ') || 'None';
+            node.setAttribute('aria-label', `${task.title}. Prerequisites: ${description}. Edit task.`);
+            node.title = `Prerequisites: ${description}`;
+            node.addEventListener('click', () => window.openTaskModal(task.id));
+            node.addEventListener('mouseenter', () => highlight(task.id));
+            node.addEventListener('mouseleave', () => highlight(canvas.contains(document.activeElement) ? document.activeElement.dataset.taskId : null));
+            node.addEventListener('focus', () => highlight(task.id));
+            node.addEventListener('blur', () => highlight(null));
+            node.dataset.taskId = task.id;
+            nodes.set(task.id, node);
             node.style.left = `${x}px`;
             node.style.top = `${y}px`;
             node.style.width = `${colWidth - 48}px`;
@@ -73,10 +100,16 @@ export function renderDependencyGraph() {
             const x2 = to.x;
             const y2 = to.y + to.h / 2;
             const mid = (x1 + x2) / 2;
-            line.setAttribute('d', `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);
+            if (from.x === to.x) {
+                const lane = x1 + 18;
+                line.setAttribute('d', `M ${x1} ${y1} C ${lane} ${y1}, ${lane} ${y2}, ${to.x + to.w} ${y2}`);
+            } else {
+                line.setAttribute('d', `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);
+            }
             line.setAttribute('class', 'graph-edge');
             line.setAttribute('marker-end', 'url(#arrowhead)');
             svg.appendChild(line);
+            edges.push({ line, source: depId, target: task.id });
         });
     });
 
