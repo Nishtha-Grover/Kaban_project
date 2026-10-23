@@ -1,39 +1,28 @@
+import { requestJson } from './httpClient.js';
+
 const TASKS_API = './data/student-tasks.json';
 
 export async function fetchExternalTasks({ timeoutMs = 10000 } = {}) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-        const response = await fetch(TASKS_API, { signal: controller.signal });
-        if (!response.ok) throw new Error('The college library is unavailable. Please retry.');
-        const data = await response.json();
-        if (!Array.isArray(data)) throw new Error('The college library has an invalid format.');
-        const text = (value, fallback = '') => typeof value === 'string' && value.trim() ? value.trim() : fallback;
-        return data.map((item, index) => {
-            if (!item || typeof item !== 'object' || !text(item.title)) {
-                throw new Error(`Library template ${index + 1} is missing a valid title.`);
-            }
-            const course = text(item.course, 'General');
-            const category = text(item.category, 'College');
-            return {
-                externalId: index + 1,
-                title: text(item.title),
-                description: text(item.description),
-                status: 'todo',
-                priority: ['low', 'medium', 'high', 'urgent'].includes(item.priority) ? item.priority : 'medium',
-                category,
-                course,
-                tags: [...new Set([course, category])]
-            };
-        });
-    } catch (error) {
-        if (controller.signal.aborted) throw new Error('Loading the college library timed out. Please retry.');
-        if (error instanceof SyntaxError) throw new Error('The college library contains unreadable JSON.');
-        if (error instanceof TypeError) throw new Error('Could not connect to the college library. Check your connection and retry.');
-        throw error;
-    } finally {
-        clearTimeout(timer);
-    }
+    const data = await requestJson(TASKS_API, { timeoutMs, label: 'College library' });
+    if (!Array.isArray(data)) throw new Error('The college library has an invalid format.');
+    const text = (value, fallback = '') => typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    return data.map((item, index) => {
+        if (!item || typeof item !== 'object' || !text(item.title)) {
+            throw new Error(`Library template ${index + 1} is missing a valid title.`);
+        }
+        const course = text(item.course, 'General');
+        const category = text(item.category, 'College');
+        return {
+            externalId: index + 1,
+            title: text(item.title),
+            description: text(item.description),
+            status: 'todo',
+            priority: ['low', 'medium', 'high', 'urgent'].includes(item.priority) ? item.priority : 'medium',
+            category,
+            course,
+            tags: [...new Set([course, category])]
+        };
+    });
 }
 
 // Promise chaining demonstrates lectures 25–26. Every request settles with
@@ -43,15 +32,8 @@ export function fetchWeatherByLocation(latitude, longitude, { timeoutMs = 10000 
         Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
         return Promise.reject(new Error('Your location is invalid. Please try again.'));
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&current=temperature_2m,weather_code&timezone=auto`;
-    return Promise.resolve()
-        .then(() => fetch(url, { signal: controller.signal }))
-        .then(response => {
-            if (!response.ok) throw new Error('The weather service is unavailable. Please retry.');
-            return response.json();
-        })
+    return requestJson(url, { timeoutMs, label: 'Weather service' })
         .then(data => {
             const current = data?.current;
             if (!Number.isFinite(current?.temperature_2m) || !Number.isInteger(current?.weather_code)) {
@@ -62,14 +44,7 @@ export function fetchWeatherByLocation(latitude, longitude, { timeoutMs = 10000 
                 code: current.weather_code,
                 description: weatherDescription(current.weather_code)
             };
-        })
-        .catch(error => {
-            if (controller.signal.aborted) throw new Error('The weather request timed out. Please retry.');
-            if (error instanceof TypeError) throw new Error('Could not connect to the weather service. Check your connection and retry.');
-            if (error instanceof SyntaxError) throw new Error('The weather service returned unreadable data. Please retry.');
-            throw error;
-        })
-        .finally(() => clearTimeout(timer));
+        });
 }
 
 export function getWeatherLocation() {
