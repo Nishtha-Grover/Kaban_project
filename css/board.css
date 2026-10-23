@@ -18,6 +18,9 @@
 .card-completed-label { display: inline-block; margin-top: 10px; font-size: 10px; color: var(--primary); background: var(--primary-soft); padding: 5px 8px; border-radius: 5px; }
 .task-move-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: 10px; }
 .task-move { max-width: 70%; min-height: 36px; padding: 6px 8px; font-size: 11px; cursor: pointer; }
+.filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; color: var(--muted); font-size: 11px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.filter-summary button { font-size: 11px; }
+.quick-filters { flex-wrap: wrap; }
 .board-guidance span { font-size: 11px; color: var(--muted); }
 .board { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
 .board .column { --column-accent: #9a8b69; display: flex; flex-direction: column; min-width: 0; min-height: 470px; padding: 20px 16px 14px; border-radius: 12px; border-top: 3px solid var(--column-accent); background: color-mix(in srgb, var(--column-accent) 5%, var(--surface)); }

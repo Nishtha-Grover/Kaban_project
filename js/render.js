@@ -31,6 +31,10 @@ export function renderBoard() {
     Object.values(cols).forEach(col => { if (col) col.innerHTML = ''; });
 
     const visibleTasks = applyFilters(Object.values(tasks));
+    const resultCount = document.getElementById('filter-results');
+    if (resultCount) resultCount.textContent = `Showing ${visibleTasks.length} of ${Object.keys(tasks).length} tasks`;
+    const clearButton = document.getElementById('clear-filters');
+    if (clearButton) clearButton.disabled = !filters.search.trim() && filters.priority === 'all' && filters.category === 'all' && filters.special === 'all';
     const counts = { todo: 0, inprogress: 0, done: 0 };
 
     visibleTasks.forEach(task => {

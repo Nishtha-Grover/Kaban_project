@@ -244,6 +244,11 @@ function wireBoardControls() {
 
 
     const update = () => {
+        document.querySelectorAll('[data-quick-filter]').forEach(button => {
+            const selected = button.dataset.quickFilter === special.value;
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
 
         setBoardFilters({
 
@@ -265,6 +270,20 @@ function wireBoardControls() {
     };
 
 
+    search.setAttribute('aria-label', 'Search task titles, descriptions, categories and tags');
+    priority.setAttribute('aria-label', 'Filter by priority');
+    category.setAttribute('aria-label', 'Filter by category');
+    special.setAttribute('aria-label', 'Filter by deadline or blocked status');
+    sort.setAttribute('aria-label', 'Sort tasks');
+    document.getElementById('clear-filters').addEventListener('click', () => {
+        search.value = '';
+        priority.value = category.value = special.value = 'all';
+        update();
+        search.focus();
+    });
+    document.querySelectorAll('[data-quick-filter]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.quickFilter === special.value));
+    });
     search.addEventListener(
         'input',
         update
