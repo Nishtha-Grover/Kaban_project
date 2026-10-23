@@ -1,6 +1,7 @@
 import { computeLockStates } from './graph.js';
 import { getSessionUsername } from './auth.js';
 import { normalizeTask, TASK_STATUSES } from './taskModel.js';
+import { buildDependencyIndex } from './dependencyModel.js';
 
 function getStorageKey() {
     return `flowforge-board-${workspaceOwner}`;
@@ -16,6 +17,7 @@ let state = {
 };
 
 let lockStates = {};
+let dependencyIndex = buildDependencyIndex({});
 let subscribers = [];
 let undoStack = [];
 let storageBlocked = false;
@@ -92,6 +94,7 @@ export function loadState() {
     workspaceOwner = getSessionUsername();
     state = { tasks: {}, activities: [] };
     lockStates = {};
+    dependencyIndex = buildDependencyIndex({});
     undoStack = [];
     pendingSnapshot = null;
     storageBlocked = false;
@@ -143,7 +146,16 @@ function saveState() {
 }
 
 function recomputeLocks() {
+    dependencyIndex = buildDependencyIndex(state.tasks);
     lockStates = computeLockStates(state.tasks);
+}
+
+export function getTaskDependencies(id) {
+    return {
+        prerequisites: [...(dependencyIndex.prerequisites.get(id) || [])],
+        dependents: [...(dependencyIndex.dependents.get(id) || [])],
+        missing: [...(dependencyIndex.missing.get(id) || [])]
+    };
 }
 
 export function getTasks() {

@@ -1,4 +1,4 @@
-import { getTasks, getLockState, deleteTask } from './state.js';
+import { getTasks, getLockState, deleteTask, getTaskDependencies } from './state.js';
 import { setupDragAndDrop, moveTask } from './dragdrop.js';
 import { showToast } from './toast.js';
 import { isOverdue, isDueSoon, deadlineLabel } from './deadlines.js';
@@ -124,7 +124,7 @@ function createTaskElement(task, allTasks, lockState) {
             renderBoard();
             return;
         }
-        const dependents = Object.values(current).filter(item => item.dependsOn.includes(task.id));
+        const dependents = getTaskDependencies(task.id).dependents.map(id => current[id]).filter(Boolean);
         const impact = dependents.length
             ? `\n\nIt is a prerequisite for ${dependents.length} task(s):\n${dependents.map(item => `• ${item.title}`).join('\n')}\n\nThose dependency links will be removed.`
             : '';
