@@ -3,6 +3,7 @@ import { User } from '../models/User.js';
 import { Task } from '../models/Task.js';
 import { Attachment } from '../models/Attachment.js';
 import { Activity } from '../models/Activity.js';
+import { filesystemAudit } from './filesystemAudit.js';
 
 function scopedModel(model, session) {
     return Object.fromEntries(['find', 'findOne', 'countDocuments', 'exists', 'deleteOne']
@@ -11,10 +12,15 @@ function scopedModel(model, session) {
 
 // Callbacks may be retried: keep emails, file operations and HTTP responses outside.
 export async function runWorkspaceTransaction(owner, work, {
-    connection = mongoose.connection, users = User, tasks = Task, attachments = Attachment, activities = Activity
+    connection = mongoose.connection, users = User, tasks = Task, attachments = Attachment, activities = Activity,
+    publishAudit = records => filesystemAudit.publish(records)
 } = {}) {
+    let committedRecords = [];
+    let result;
     try {
-        return await connection.transaction(async session => {
+        result = await connection.transaction(async session => {
+            // Discard records from an aborted attempt when the driver retries.
+            committedRecords = [];
             // A shared write prevents concurrent tasks from bypassing graph invariants.
             // It must precede all task reads, including on each transaction retry.
             const lock = await users.updateOne({ _id: owner },
@@ -28,8 +34,11 @@ export async function runWorkspaceTransaction(owner, work, {
                 session, tasks: scopedTasks, attachments: scopedModel(attachments, session),
                 countDependencies: filter => scopedTasks.countDocuments(filter),
                 saveTask: task => task.save({ session }),
-                recordActivity: ({ task, action, message }) => activities.create(
-                    [{ owner, task, action, message }], { session })
+                recordActivity: async ({ task, action, message }) => {
+                    const records = await activities.create([{ owner, task, action, message }], { session });
+                    committedRecords.push(...records);
+                    return records;
+                }
             });
         }, { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' }, readPreference: 'primary' });
     } catch (error) {
@@ -39,4 +48,9 @@ export async function runWorkspaceTransaction(owner, work, {
         }
         throw error;
     }
+    // File writes cannot roll back with MongoDB. Emit only after confirmed commit.
+    // Secondary-log failure must not make a committed mutation appear unsuccessful.
+    try { if (committedRecords.length) await publishAudit(committedRecords); }
+    catch { console.warn('Filesystem audit unavailable; database history is preserved.'); }
+    return result;
 }
