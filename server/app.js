@@ -1,4 +1,5 @@
 import express from 'express';
+import { mountFrontend } from './frontend.js';
 
 export function createApp() {
     const app = express();
@@ -11,7 +12,7 @@ export function createApp() {
         });
     });
 
-    // Frontend static routes will be added in the next implementation stage.
+    mountFrontend(app);
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });
     });
@@ -23,6 +24,9 @@ export function createApp() {
         }
         if (error.type === 'entity.too.large') {
             return res.status(413).json({ error: { code: 'BODY_TOO_LARGE', message: 'Request body exceeds 100 KB.' } });
+        }
+        if (error.status === 404) {
+            return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'File not found.' } });
         }
         // Do not send stack traces or request bodies to the browser.
         console.error('Unhandled API error:', error.name || 'Error');

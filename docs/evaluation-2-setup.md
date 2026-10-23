@@ -46,4 +46,15 @@ Visit http://127.0.0.1:3000/api/health (or your configured port). Expected respo
 
 A health response confirms the HTTP process, not database readiness. Unknown routes return JSON with HTTP 404. JSON request bodies are limited to 100 KB; malformed JSON returns 400 and oversized JSON returns 413. Stop the API with Ctrl+C; it allows active requests to finish with a ten-second shutdown deadline.
 
-At this stage `/` on port 3000 returns 404 because frontend serving belongs to the next stage. Continue using the existing preview on port 4173. MongoDB, JWT and task endpoints are still pending.
+Stage 39 adds the frontend at `/` on port 3000. MongoDB, JWT and task endpoints are still pending.
+
+
+## Stage 39: frontend through Express
+
+With `npm run dev` running, open http://127.0.0.1:3000/. The landing, signup, login and board pages now use the same server as `/api/health`. CSS, browser JavaScript and the College Task Library JSON are served through explicit routes. The repository root is never a static directory: `.env`, `server/`, `scripts/`, `.git/`, package files and documentation are not public routes. Unknown routes return 404.
+
+Port 3000 and port 4173 are different browser origins. Your existing localStorage accounts/tasks on 4173 are not automatically shared with 3000. For this stage, create a new demo account on 3000; your old data remains on 4173. Server authentication and data migration are later work.
+
+Keep the API terminal running and use a separate terminal for Git. Once you have opened the frontend on 3000, you can stop the old Python preview using Ctrl+C in its terminal.
+
+Browser checks: load all four pages; create a demo account; import a library template; confirm `/api/health` still works; confirm `/.env`, `/server/config.js` and `/package.json` return 404 rather than file contents.
