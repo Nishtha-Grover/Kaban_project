@@ -10,6 +10,7 @@
   "scripts": {
     "test:api:auth": "node --test scripts/api-auth-crud.test.js",
     "test:api:files": "node --test scripts/api-dependencies-uploads.test.js",
+    "test:frontend": "node --experimental-vm-modules --test scripts/frontend-integration.test.js",
     "check": "node scripts/check-syntax.js",
     "config:check": "node --env-file-if-exists=.env scripts/check-config.js",
     "preview": "python3 -m http.server 4173 --bind 127.0.0.1",
@@ -22,5 +23,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.6",
     "multer": "^2.5.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
   }
 }
