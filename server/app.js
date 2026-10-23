@@ -1,4 +1,6 @@
 import express from 'express';
+import { databaseReady } from './database.js';
+import { authRouter } from './routes/auth.js';
 import { mountFrontend } from './frontend.js';
 
 export function createApp() {
@@ -8,10 +10,11 @@ export function createApp() {
 
     app.get('/api/health', (req, res) => {
         res.set('Cache-Control', 'no-store').json({
-            status: 'ok', service: 'FlowForge API', database: 'not-connected'
+            status: 'ok', service: 'FlowForge API', database: databaseReady() ? 'connected' : 'not-connected'
         });
     });
 
+    app.use('/api/auth', authRouter);
     mountFrontend(app);
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });

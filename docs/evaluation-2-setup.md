@@ -74,3 +74,13 @@ Commit both `package.json` and `package-lock.json` after installation so the tea
 Only bcrypt-format password hashes are accepted. Hashes are excluded from normal queries and removed from model JSON/object output. Login will explicitly select the hash for comparison; raw/lean query results must never be returned as authentication responses. The model does not hash passwords itself; registration will add bcrypt in the next stage.
 
 The model checks cover normalization, validation, serialization and index declarations without connecting to MongoDB. They do not test persistence, database uniqueness, password hashing or authentication. This stage does not connect the database or change browser-local login; existing demo accounts are not migrated automatically.
+
+## Stage 41: registration and bcrypt
+
+Run `npm install bcrypt@6`, then `node --test scripts/user-model.test.js scripts/registration.test.js`. The registration tests use a fake repository; the last test exercises real bcrypt hashing and comparison. Database persistence and HTTP behavior need separate integration testing with a running MongoDB instance.
+
+`POST /api/auth/register` accepts a JSON object containing `username`, `password` and optional `displayName`. Passwords must have at least eight characters and at most 72 UTF-8 bytes (bcrypt's input limit). The server hashes with cost 12 and returns only user ID, username and display name. It returns 201 on creation, 400 for invalid input, 409 for duplicate usernames and 503 if the database is unavailable. Registration does not create a login session yet.
+
+Copy `.env.example` to `.env` if needed and configure MONGODB_URI to your MongoDB database. With no URI, the frontend still starts but registration returns 503. With a configured URI, startup connects and creates the unique username index before listening; a failed connection or index setup stops startup with a non-secret error. Restart `npm run dev` after changing `.env`. Health now reports the actual database connection state.
+
+Existing HTML signup/login still use demo localStorage authentication. They are not connected to this endpoint yet, and old demo accounts are not migrated. JWT login and frontend integration follow in later stages. Before deployment, authentication endpoints also need abuse/rate-limit controls.
