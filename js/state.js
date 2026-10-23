@@ -2,6 +2,14 @@ import { computeLockStates } from './graph.js';
 import { getSessionUsername } from './auth.js';
 import { normalizeTask, TASK_STATUSES } from './taskModel.js';
 import { buildDependencyIndex } from './dependencyModel.js';
+import { prerequisiteError, transitionError } from './dependencyRules.js';
+
+function enforceDependencyRule(message) {
+    if (!message) return;
+    const error = new Error(message);
+    error.name = 'TaskDependencyError';
+    throw error;
+}
 
 function getStorageKey() {
     return `flowforge-board-${workspaceOwner}`;
@@ -202,6 +210,7 @@ export function addTask(taskData) {
 export function updateTask(id, taskData) {
     const task = state.tasks[id];
     if (!task) return;
+    enforceDependencyRule(prerequisiteError(state.tasks, { ...task, dependsOn: taskData.dependsOn ?? task.dependsOn }));
     rememberForUndo();
     Object.assign(task, normalizeTask({
         ...task,
@@ -220,6 +229,7 @@ export function updateTask(id, taskData) {
 export function updateTaskStatus(id, newStatus) {
     const task = state.tasks[id];
     if (!task || task.status === newStatus || !TASK_STATUSES.includes(newStatus)) return;
+    enforceDependencyRule(transitionError(state.tasks, id, newStatus));
     rememberForUndo();
     const oldStatus = task.status;
     task.status = newStatus;

@@ -184,7 +184,13 @@ function handleFormSubmit(event) {
     };
 
     if (taskId) {
-        updateTask(taskId, taskData);
+        try {
+            updateTask(taskId, taskData);
+        } catch (error) {
+            if (error.name !== 'TaskDependencyError') throw error;
+            showError(error.message);
+            return;
+        }
         showToast('Task updated');
     } else {
         addTask(taskData);

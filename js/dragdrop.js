@@ -73,7 +73,13 @@ export function moveTask(taskId, newStatus) {
         }
     }
 
-    updateTaskStatus(taskId, newStatus);
+    try {
+        updateTaskStatus(taskId, newStatus);
+    } catch (error) {
+        if (error.name !== 'TaskDependencyError') throw error;
+        showToast(error.message, 8000);
+        return false;
+    }
     const labels = { todo: 'To do', inprogress: 'In progress', done: 'Done' };
     showToast(`Moved “${task.title}” to ${labels[newStatus]}.`);
     const card = [...document.querySelectorAll('.task-card')].find(item => item.dataset.id === taskId);
