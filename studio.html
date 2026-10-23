@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/studio.css">
     <link rel="stylesheet" href="css/studioExplorer.css">
+    <link rel="stylesheet" href="css/studioRelationships.css">
     <script type="module" src="js/studio.js"></script>
 </head>
 <body class="studio-body">
@@ -33,6 +34,8 @@
                 <button class="primary" type="submit">Sign in to database</button>
             </form>
             <div class="explorer-actions"><strong id="explorer-collection">Users</strong><button class="secondary" id="documents-refresh" type="button">Refresh documents ↻</button></div>
+            <label class="explorer-expand"><input type="checkbox" id="expand-relationships"> Resolve relationships with populate</label>
+            <p class="studio-description" id="relationship-mode">Reference IDs are shown as stored. Enable populate to see the linked owner and task summaries.</p>
             <p id="explorer-status" role="status" class="studio-description">Loading documents…</p>
             <div id="explorer-documents" class="explorer-documents"></div>
             <div class="studio-panel-footer"><button class="studio-text-button" id="documents-previous" type="button" disabled>← Previous</button><span id="documents-page">No documents loaded</span><button class="studio-text-button" id="documents-next" type="button" disabled>Next →</button></div>

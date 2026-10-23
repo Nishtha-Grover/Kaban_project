@@ -12,7 +12,8 @@ export async function loadDocuments(key = collection, requestedPage = 1) {
     byId('documents-page').textContent = 'Loading…';
     byId('documents-previous').disabled = true; byId('documents-next').disabled = true;
     try {
-        const response = await fetch(`/api/studio/collections/${encodeURIComponent(key)}?page=${page}&limit=10`,
+        const expand = byId('expand-relationships').checked ? '&expand=relationships' : '';
+        const response = await fetch(`/api/studio/collections/${encodeURIComponent(key)}?page=${page}&limit=10${expand}`,
             { credentials: 'same-origin', cache: 'no-store', signal: controller.signal });
         if (request !== sequence) return;
         if (response.status === 401) {
@@ -33,7 +34,9 @@ export async function loadDocuments(key = collection, requestedPage = 1) {
             summary.textContent = document.title || document.originalName || document.username || document.action || String(document._id);
             const pre = window.document.createElement('pre');
             pre.textContent = JSON.stringify(document, null, 2); pre.tabIndex = 0;
-            details.append(summary, pre); byId('explorer-documents').append(details);
+            details.append(summary);
+            if (result.expanded) details.append(renderRelationships(document, key));
+            details.append(pre); byId('explorer-documents').append(details);
         }
         byId('documents-page').textContent = `Page ${result.page} · ${result.totalPages} total pages`;
         byId('documents-previous').disabled = page <= 1;
@@ -46,6 +49,30 @@ export async function loadDocuments(key = collection, requestedPage = 1) {
     } finally { clearTimeout(timer); }
 }
 
+function renderRelationships(record, key) {
+    const section = document.createElement('div'); section.className = 'explorer-links';
+    const add = (label, value) => {
+        const line = document.createElement('p'), name = document.createElement('strong'), text = document.createElement('span');
+        name.textContent = label;
+        text.textContent = value ? `${value.title || value.displayName || value.username || value._id}${value.status ? ` · ${value.status}` : ''}` : 'Not available in this workspace';
+        line.append(name, text); section.append(line);
+    };
+    if (key === 'users') {
+        const text = document.createElement('p'); text.textContent = 'Your account has no outgoing references to populate.'; section.append(text);
+    } else add('Owner →', record.owner);
+    if (Object.hasOwn(record, 'task')) add('Task →', record.task);
+    if (record.dependsOn) {
+        if (record.dependsOn.length) record.dependsOn.forEach(task => add('Prerequisite →', task));
+        else { const text = document.createElement('p'); text.textContent = 'No available prerequisite references.'; section.append(text); }
+    }
+    return section;
+}
+byId('expand-relationships').addEventListener('change', () => {
+    byId('relationship-mode').textContent = byId('expand-relationships').checked
+        ? 'Populate replaces reference IDs with owner and task summaries. Unavailable references appear as null or are omitted from arrays.'
+        : 'Reference IDs are shown as stored. Enable populate to see the linked owner and task summaries.';
+    loadDocuments(collection, page);
+});
 byId('documents-refresh').addEventListener('click', () => loadDocuments(collection, page));
 byId('documents-previous').addEventListener('click', () => loadDocuments(collection, page - 1));
 byId('documents-next').addEventListener('click', () => loadDocuments(collection, page + 1));

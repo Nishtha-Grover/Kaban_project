@@ -38,3 +38,26 @@ integration remain later work. Blob browsing exposes metadata only.
 `node --test scripts/explorer.test.js` verifies owner filters, secret exclusion,
 pagination and rejected query injection with test doubles. Live database browsing
 still requires MongoDB/JWT setup and an authenticated database account.
+
+## Relationship showcase — stage 59
+
+Enable “Resolve relationships with populate” in the document explorer to request
+`expand=relationships`. Without this parameter, reference IDs remain unchanged.
+Expanded documents show readable relationship summaries and the resulting JSON.
+
+Mongoose populate resolves owner on tasks, activities, attachments and blob
+metadata; task prerequisites on tasks; and task on activities/attachments. Users
+have no outgoing references in this view. All paths and projections are fixed
+server-side. Every populated user matches the authenticated account ID; every
+populated task matches the authenticated owner. Nested response fields are also
+allowlisted, so password hashes, storage keys and blob bytes cannot leak through
+relationship expansion. There is no recursive dependency expansion.
+
+Deleted or unavailable singular references appear as null, and unavailable
+prerequisites are omitted from arrays. Activity messages remain readable after
+task deletion. The populate view consists of multiple database reads, not an
+atomic snapshot; concurrent changes may appear on the next refresh.
+
+`node --test scripts/populate.test.js scripts/explorer.test.js` verifies scope,
+projections, nested filtering, raw ID mode and missing references using test
+doubles. Live MongoDB populate results still require the database connection.
