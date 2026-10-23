@@ -84,3 +84,13 @@ Run `npm install bcrypt@6`, then `node --test scripts/user-model.test.js scripts
 Copy `.env.example` to `.env` if needed and configure MONGODB_URI to your MongoDB database. With no URI, the frontend still starts but registration returns 503. With a configured URI, startup connects and creates the unique username index before listening; a failed connection or index setup stops startup with a non-secret error. Restart `npm run dev` after changing `.env`. Health now reports the actual database connection state.
 
 Existing HTML signup/login still use demo localStorage authentication. They are not connected to this endpoint yet, and old demo accounts are not migrated. JWT login and frontend integration follow in later stages. Before deployment, authentication endpoints also need abuse/rate-limit controls.
+
+## Stage 42: JWT login and cookies
+
+Install `jsonwebtoken@9`, then run `node --test scripts/user-model.test.js scripts/registration.test.js scripts/session.test.js`. Commit the updated package manifest and lockfile. Configure a random JWT_SECRET of at least 32 characters in `.env` and restart the API. A connected MongoDB database is also required for login.
+
+`POST /api/auth/login` takes JSON username/password and returns public user fields. It sets `flowforge_session`, a one-hour HttpOnly cookie with SameSite=Strict and Path=/. Production sets Secure and therefore requires HTTPS; local HTTP development does not set Secure. The token uses HS256 with an explicit issuer, audience and user ID subject. Tokens are not returned in JSON or stored in browser localStorage. Wrong usernames and passwords both return the same 401 response.
+
+`POST /api/auth/logout` with JSON `{}` clears the matching cookie and returns 204. Clearing a cookie does not invalidate a previously copied token; it expires after one hour. Server-side revocation is not implemented. Authentication POSTs require application/json and reject requests explicitly marked cross-site. No cross-origin CORS access is enabled.
+
+Session tests use a fake user repository for password checks and real JWT signing/verification for token checks. Live HTTP cookies, database login, HTTPS deployment and frontend integration remain to be checked. The next stage adds authentication/owner middleware. HTML login still uses the original demo flow until frontend integration.
