@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { SourceTextModule } from 'node:vm';
 import { JSDOM } from 'jsdom';
 import { startApiFixture } from './helpers/apiFixture.js';
+import { Attachment } from '../server/models/Attachment.js';
+import { AttachmentBlob } from '../server/models/AttachmentBlob.js';
 
 async function until(predicate) {
     const end = Date.now() + 10000;
@@ -22,6 +24,9 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
     const { window } = dom, document = window.document;
     const $ = id => document.getElementById(id);
     window.AbortController = AbortController; window.Headers = Headers;
+    window.FormData = FormData;
+    window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+    window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new window.Event('close')); };
     window.confirm = () => true;
     let offline = false, loseWriteResponse = false;
     window.fetch = async (path, options = {}) => {
@@ -107,10 +112,41 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
         await state.loadState();
         assert.equal(Object.values(state.getTasks()).filter(task => task.title === 'Saved despite lost response').length, 1);
     });
-    await t.test('account change blocks old workspace edits', async () => {
+    let filePath;
+    await t.test('Files dialog uploads, lists, downloads and removes bytes', async () => {
+        const task = Object.values(state.getTasks())[0];
+        const card = document.querySelector(`[data-id="${task.id}"]`);
+        [...card.querySelectorAll('button')].find(button => button.textContent === 'Files').click();
+        const dialog = document.querySelector('.attachment-dialog');
+        await until(() => dialog.querySelector('[data-file-status]').textContent.includes('No files'));
+        const input = dialog.querySelector('input[type=file]');
+        Object.defineProperty(input, 'files', { configurable: true, value: [new File(['Attachment contents'], 'notes.txt', { type: 'text/plain' })] });
+        dialog.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+        await until(() => dialog.querySelectorAll('.attachment-row').length === 1 && !dialog.querySelector('input').disabled);
+        const link = dialog.querySelector('.attachment-row a');
+        assert.equal(await (await window.fetch(link.getAttribute('href'))).text(), 'Attachment contents');
+        const listing = await (await window.fetch(`/api/tasks/${task.id}/attachments`)).json();
+        assert.equal(listing.attachments[0].storageKey, undefined);
+        assert.equal(listing.attachments[0].owner, undefined);
+        filePath = `/api/tasks/${task.id}/attachments`;
+        // Wait for the audit refresh after the upload, then remove through the UI.
+        await until(() => state.getActivities()[0]?.type === 'upload');
+        dialog.querySelector('.attachment-row button').click();
+        await until(() => dialog.querySelector('[data-file-status]').textContent.includes('No files'));
+        await until(() => state.getActivities()[0]?.type === 'delete-attachment');
+        assert.equal(await Attachment.countDocuments({ task: task.id }), 0);
+        assert.equal(await AttachmentBlob.countDocuments(), 0);
+        assert.equal((await window.fetch(link.getAttribute('href'))).status, 404);
+        dialog.querySelector('.modal-header button').click();
+        assert.equal(dialog.open, false);
+    });
+    await t.test('account change blocks old workspace edits and attachment access', async () => {
         assert.equal((await auth.registerUser('second_board_user', 'Board-Password-123!')).success, true);
         await assert.rejects(state.addTask({ title: 'Wrong workspace' }), /session changed/);
         await state.loadState();
         assert.equal(Object.keys(state.getTasks()).length, 0);
+        assert.equal((await window.fetch(filePath)).status, 404);
+        assert.equal((await window.fetch(`${filePath}/${'a'.repeat(24)}`, { method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 404);
     });
 });

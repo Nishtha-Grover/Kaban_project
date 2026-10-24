@@ -25,9 +25,18 @@ College Library imports run sequentially. A failure can leave earlier tasks save
 the UI reports the confirmed count and requires reload before retry. They are not
 an atomic batch yet. Legacy browser data remains untouched and is not auto-imported.
 Undo and bulk reset are visibly disabled pending transactional server support.
-Attachment controls and deployment remain outstanding.
+Deployment remains outstanding.
+
+Each task card now has a Files button. Its native modal dialog lists attachments
+in pages of 20, uploads one supported file at a time (up to 10 MiB), links to the
+authenticated streamed download, and removes a file after explicit confirmation.
+Deletion removes metadata and bytes and records activity in one workspace
+transaction. Listing and deletion enforce task ownership. Upload errors advise
+refreshing before retry because a lost response may follow a committed upload.
+File removal is permanent and is not covered by Undo.
 
 `npm run test:frontend:board` exercises actual form submission, dropdown movement,
 delete controls, database reloads, dependency rejection, library persistence,
-offline failure, lost-response reconciliation and account-switch isolation with
+offline failure, lost-response reconciliation, the Files dialog, byte removal,
+download content and account-switch isolation with
 JSDOM and an isolated real MongoDB/API. It does not replace visual browser checks.

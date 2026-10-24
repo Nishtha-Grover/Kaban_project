@@ -3,6 +3,7 @@ import { setupDragAndDrop, moveTask } from './dragdrop.js';
 import { showToast } from './toast.js';
 import { isOverdue, isDueSoon, deadlineLabel } from './deadlines.js';
 import { sortTasks } from './taskSort.js';
+import { openAttachments } from './taskAttachments.js';
 
 let filters = {
     search: '',
@@ -136,7 +137,9 @@ function createTaskElement(task, allTasks, lockState) {
             finally { deleteBtn.disabled = false; }
         }
     });
-    actions.append(editBtn, deleteBtn);
+    const filesBtn = makeActionButton('Files', () => openAttachments(task));
+    filesBtn.setAttribute('aria-label', `Files for ${task.title}`);
+    actions.append(editBtn, filesBtn, deleteBtn);
     editBtn.setAttribute('aria-label', `Edit ${task.title}`);
     deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
     header.append(title, actions);
