@@ -6,6 +6,7 @@ function publicUser(document, result) {
     delete result.workspaceRevision;
     delete result.demoSeedVersion;
     delete result.migrationHashes;
+    delete result.boardUndo;
     return result;
 }
 
@@ -13,6 +14,7 @@ const userSchema = new mongoose.Schema({
     workspaceRevision: { type: Number, default: 0, select: false },
     demoSeedVersion: { type: Number, default: 0, select: false },
     migrationHashes: { type: [String], default: [], select: false },
+    boardUndo: { type: mongoose.Schema.Types.Mixed, default: null, select: false },
     username: {
         type: String,
         required: [true, 'Username is required.'],

@@ -44,7 +44,7 @@
 
         <main class="workspace" id="workspace-main">
             <p id="storage-notice" role="alert" hidden></p>
-            <p class="studio-notice">Tasks and recent activity now load from your database workspace. Undo and bulk reset are temporarily unavailable. <button type="button" class="text-button" id="migrate-browser-btn">Import older browser tasks</button></p>
+            <p class="studio-notice">Your tasks and activity are saved to your database workspace. Undo restores the latest task action until the next workspace change. <button type="button" class="text-button" id="migrate-browser-btn">Import older browser tasks</button></p>
             <div class="workspace-path"><button id="navigation-toggle" class="secondary" type="button" aria-expanded="false" aria-controls="workspace-sidebar">☰ Menu</button><span>My workspace <span aria-hidden="true">/</span> <strong id="workspace-current">Dashboard</strong></span><span class="workspace-status">● Your personal space</span></div>
             <header class="topbar">
                 <div>
@@ -133,7 +133,7 @@
                     <section class="column" data-status="inprogress" aria-labelledby="progress-title"><div class="column-heading"><h2 id="progress-title"><i class="dot inprogress" aria-hidden="true"></i>In progress</h2><b id="count-inprogress" aria-label="In progress task count">0</b></div><p class="column-description">Give good ideas your attention.</p><div class="task-list" id="col-inprogress" aria-label="In progress tasks"></div><div class="column-footnote">02 / Find your rhythm</div></section>
                     <section class="column" data-status="done" aria-labelledby="done-title"><div class="column-heading"><h2 id="done-title"><i class="dot done" aria-hidden="true"></i>Done</h2><b id="count-done" aria-label="Completed task count">0</b></div><p class="column-description">Every little win belongs here.</p><div class="task-list" id="col-done" aria-label="Completed tasks"></div><div class="column-footnote">03 / Celebrate the progress</div></section>
                 </div>
-                <div class="danger-zone"><button class="danger" id="reset-board-btn" disabled title="Database reset is not available yet">Reset board</button></div>
+                <div class="danger-zone"><button class="danger" id="reset-board-btn" title="Reset up to 500 tasks; remove attachments first. The reset can be undone before another workspace change.">Reset board</button></div>
             </section>
 
             <section class="app-view" data-view="graph">

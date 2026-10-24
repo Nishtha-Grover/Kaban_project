@@ -410,7 +410,7 @@ function wireGlobalActions() {
 
     document
         .getElementById('reset-board-btn')
-        .addEventListener('click', () => {
+        .addEventListener('click', async () => {
 
             if (
                 confirm(
@@ -418,27 +418,26 @@ function wireGlobalActions() {
                 )
             ) {
 
-                resetBoard();
-
-                showToast(
-                    'Board reset'
-                );
+                try { await resetBoard(); showToast('Board reset. Undo is available until the next change.'); }
+                catch (error) { showToast(error.message, 12000); }
 
             }
 
         });
 
 
-    const undo = () => {
+    const undo = async () => {
         const info = getUndoInfo();
-        if (undoLastAction()) showToast(`Undone: ${info.label}`);
-        else showToast('Nothing to undo');
+        try {
+            if (await undoLastAction()) showToast(`Undone: ${info.label}`);
+            else showToast('Nothing to undo');
+        } catch (error) { showToast(error.message, 12000); }
     };
     document.getElementById('undo-btn').addEventListener('click', undo);
     document.addEventListener('keydown', event => {
         if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'z') return;
         if (event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
-        if (document.querySelector('.modal:not(.hidden)') || !canUndo()) return;
+        if (document.querySelector('.modal:not(.hidden), dialog[open]') || !canUndo()) return;
         event.preventDefault();
         undo();
     });
@@ -456,7 +455,7 @@ function updateUndoButton() {
         !canUndo();
     const info = getUndoInfo();
     button.textContent = info.count ? `↶ Undo (${info.count})` : '↶ Undo';
-    button.title = info.count ? `Undo: ${info.label}. Up to 20 changes in this session. Ctrl/⌘ Z.` : 'Database undo is not available yet.';
+    button.title = info.count ? `Undo: ${info.label}. Restores the latest task action. Ctrl/⌘ Z.` : 'No current database action to undo.';
     button.setAttribute('aria-label', info.count ? `Undo: ${info.label}` : 'Nothing to undo');
 
 }

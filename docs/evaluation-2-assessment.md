@@ -71,9 +71,7 @@ git shortlog -sn evaluation-1-enhancements..HEAD
 
 ## Outstanding completion work
 
-- Implement transactional undo and bulk reset (currently disabled). Library imports
-  already persist, but run sequentially and can partially complete.
-- Add integration tests for those completed board flows and check mobile/visual UI.
+- Complete mobile/visual browser verification; database board flows have integration tests.
 - Configure the actual application database/Atlas and verify it through the website.
 - Implement hosting adapter/routing, HTTPS configuration and hosting upload limits;
   publish and verify the complete project from another system.

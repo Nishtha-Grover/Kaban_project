@@ -130,7 +130,7 @@ function createTaskElement(task, allTasks, lockState) {
             showToast('Remove prerequisite links from dependent tasks before deleting this task.', 8000);
             return;
         }
-        if (confirm(`Delete “${current[task.id].title}” from the database? This cannot currently be undone.`)) {
+        if (confirm(`Delete “${current[task.id].title}” from the database? Undo is available for boards up to 500 tasks until the next workspace change.`)) {
             deleteBtn.disabled = true;
             try { await deleteTask(task.id); showToast('Task deleted from database'); }
             catch (error) { showToast(error.message, 12000); }

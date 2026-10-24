@@ -104,7 +104,7 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
         assert.equal(Object.keys(state.getTasks()).length, count);
         offline = false; await state.loadState();
         assert.equal(Object.keys(state.getTasks()).length, count);
-        assert.equal(state.canUndo(), false);
+        assert.equal(state.canUndo(), true);
     });
     await t.test('lost write response requires reconciliation without duplicate retry', async () => {
         loseWriteResponse = true;
@@ -112,6 +112,38 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
         await assert.rejects(state.addTask({ title: 'Saved despite lost response' }), /Reload/);
         await state.loadState();
         assert.equal(Object.values(state.getTasks()).filter(task => task.title === 'Saved despite lost response').length, 1);
+    });
+    await t.test('database undo survives reload and reset can restore task links', async () => {
+        const id = await state.addTask({ title: 'Undo example' });
+        const originalVersion = state.getTask(id).version;
+        await state.updateTask(id, { title: 'Changed title' });
+        await state.loadState();
+        assert.equal(await state.undoLastAction(), true);
+        assert.equal(state.getTask(id).title, 'Undo example');
+        assert.ok(state.getTask(id).version > originalVersion + 1);
+        assert.equal(state.canUndo(), false);
+        const before = Object.values(state.getTasks()).map(task => ({ id: task.id, dependsOn: [...task.dependsOn] }));
+        await state.resetBoard(); assert.equal(Object.keys(state.getTasks()).length, 0);
+        await state.loadState(); assert.equal(await state.undoLastAction(), true);
+        for (const task of before) assert.equal(JSON.stringify(state.getTask(task.id).dependsOn), JSON.stringify(task.dependsOn));
+    });
+    await t.test('library batch rolls back invalid records and undo removes the entire batch', async () => {
+        const count = Object.keys(state.getTasks()).length;
+        await assert.rejects(state.importTasks([{ title: 'Should roll back' }, { title: '' }]));
+        await state.loadState(); assert.equal(Object.keys(state.getTasks()).length, count);
+        assert.equal(await state.importTasks([{ title: 'Batch one' }, { title: 'Batch two' }]), 2);
+        assert.equal(Object.keys(state.getTasks()).length, count + 2);
+        assert.equal(await state.undoLastAction(), true);
+        assert.equal(Object.keys(state.getTasks()).length, count);
+    });
+    await t.test('stale reset and undo cannot overwrite a newer task change', async () => {
+        const history = await (await window.fetch('/api/tasks/history')).json();
+        const id = await state.addTask({ title: 'Newer work' });
+        for (const operation of ['reset', 'undo']) {
+            const result = await window.fetch(`/api/tasks/${operation}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revision: history.revision }) });
+            assert.equal(result.status, 409);
+        }
+        await state.loadState(); assert.equal(state.getTask(id).title, 'Newer work');
     });
     await t.test('browser import previews linked tasks, preserves old data and deduplicates retries', async () => {
         const migration = await use('browserMigration.js'); migration.initBrowserMigration();
@@ -168,6 +200,9 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
         filePath = `/api/tasks/${task.id}/attachments`;
         // Wait for the audit refresh after the upload, then remove through the UI.
         await until(() => state.getActivities()[0]?.type === 'upload');
+        assert.equal(state.canUndo(), false); // Upload invalidates older task undo snapshots.
+        await assert.rejects(state.resetBoard()); // Never orphan attached file records.
+        await state.loadState();
         dialog.querySelector('.attachment-row button').click();
         await until(() => dialog.querySelector('[data-file-status]').textContent.includes('No files'));
         await until(() => state.getActivities()[0]?.type === 'delete-attachment');

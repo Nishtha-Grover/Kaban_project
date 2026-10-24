@@ -17,8 +17,9 @@ for Git commands. Do not use the old static preview for backend features.
 **Current integration boundary:** signup/login, board tasks and recent activity
 use the authenticated MongoDB APIs shared with Database Studio. Create/edit/move/
 delete and College Task Library imports save to the database. Older browser data
-can be previewed and explicitly imported; originals are preserved. Undo and bulk reset are temporarily disabled until
-transactional server operations are implemented. Each task's Files button supports
+can be previewed and explicitly imported; originals are preserved. Undo restores
+the latest task action for boards up to 500 tasks. Reset and library imports are
+transactional. Each task's Files button supports
 upload, download and removal. Deployment remains unfinished.
 The feature descriptions below include the preserved Evaluation 1 functionality.
 

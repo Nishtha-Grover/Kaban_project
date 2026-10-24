@@ -7,18 +7,26 @@ import { requestJson } from './httpClient.js';
 let state = { tasks: Object.create(null), activities: [] };
 let locks = {}, index = buildDependencyIndex({}), owner = null;
 let ready = false, busy = false;
+let history = { revision: 0, canUndo: false, label: '' };
 const subscribers = new Set();
 export function subscribe(callback) { subscribers.add(callback); return () => subscribers.delete(callback); }
 function notify() { for (const callback of subscribers) callback(); }
 function assertOwner() {
     if (!owner || owner !== getWorkspaceIdentity()) throw new Error('Your session changed. Reload before editing.');
 }
-async function readBoard() {
+async function readBoard(attempt = 0) {
+    const before = await requestJson('/api/tasks/history', { label: 'Load board revision' });
     const [tasks, activity] = await Promise.all([
         loadDatabaseTasks(),
         requestJson('/api/studio/collections/activities?limit=50', { label: 'Load activity' })
     ]);
+    const after = await requestJson('/api/tasks/history', { label: 'Load board history' });
+    if (before.revision !== after.revision) {
+        if (attempt < 2) return readBoard(attempt + 1);
+        throw new Error('The board is changing in another tab. Wait a moment and reload.');
+    }
     assertOwner();
+    history = after;
     state = {
         tasks: Object.fromEntries(tasks.map(task => [task.id, task])),
         activities: activity.documents.map(item => ({ id: item._id, type: item.action,
@@ -30,6 +38,7 @@ async function readBoard() {
 export async function loadState() {
     if (busy) throw new Error('Wait for the current save to finish.');
     busy = true; ready = false;
+    history = { revision: 0, canUndo: false, label: '' };
     owner = getWorkspaceIdentity();
     state = { tasks: Object.create(null), activities: [] };
     locks = {}; index = buildDependencyIndex({});
@@ -73,21 +82,18 @@ export async function updateTaskStatus(id, status) { return updateTask(id, { sta
 export async function deleteTask(id) { return mutate(() => deleteDatabaseTask(taskAt(id))); }
 export async function importTasks(items) {
     return mutate(async () => {
-        let count = 0;
-        try {
-            for (const item of items) {
-                await createDatabaseTask({ ...item, dependsOn: [] });
-                count++;
-            }
-            return count;
-        } catch (error) {
-            error.message = `${count} imports confirmed. The last request may also have saved. ${error.message}`;
-            throw error;
-        }
+        const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags'];
+        const tasks = items.map(item => ({ ...Object.fromEntries(fields.filter(key => item[key] !== undefined).map(key => [key, item[key]])), dependsOn: [] }));
+        return (await requestJson('/api/tasks/import-library', { method: 'POST', json: { tasks }, label: 'Import library', timeoutMs: 30000 })).imported;
     });
 }
-// Database undo/reset require transactional operations, not local snapshots.
-export function resetBoard() { throw new Error('Database reset is not available yet.'); }
-export function undoLastAction() { return false; }
-export function canUndo() { return false; }
-export function getUndoInfo() { return { count: 0, label: 'Database undo is not available yet' }; }
+export async function resetBoard() {
+    return mutate(() => requestJson('/api/tasks/reset', { method: 'POST', json: { revision: history.revision }, label: 'Reset board', timeoutMs: 30000 }));
+}
+export async function undoLastAction() {
+    if (!canUndo()) return false;
+    await mutate(() => requestJson('/api/tasks/undo', { method: 'POST', json: { revision: history.revision }, label: 'Undo action', timeoutMs: 30000 }));
+    return true;
+}
+export function canUndo() { return ready && history.canUndo; }
+export function getUndoInfo() { return { count: canUndo() ? 1 : 0, label: history.label || 'Nothing to undo' }; }
