@@ -11,6 +11,7 @@
     "test:api:auth": "node --test scripts/api-auth-crud.test.js",
     "test:api:files": "node --test scripts/api-dependencies-uploads.test.js",
     "test:frontend": "node --experimental-vm-modules --test scripts/frontend-integration.test.js",
+    "test:frontend:auth": "node --experimental-vm-modules --test scripts/auth-frontend.test.js",
     "check": "node scripts/check-syntax.js",
     "config:check": "node --env-file-if-exists=.env scripts/check-config.js",
     "preview": "python3 -m http.server 4173 --bind 127.0.0.1",

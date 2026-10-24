@@ -71,8 +71,8 @@ git shortlog -sn evaluation-1-enhancements..HEAD
 
 ## Outstanding completion work
 
-- Connect the original signup/login and board to database authentication and task
-  APIs. Studio already uses them, but the board still uses localStorage.
+- Connect board tasks to the task APIs. Signup/login now use database
+  authentication, but board tasks still use localStorage scoped to database user ID.
 - Decide and implement explicit local-task migration without overwriting user data.
 - Integrate task attachment controls and server-backed activity into the board.
 - Reconcile undo and College Task Library import with server persistence.

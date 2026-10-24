@@ -65,11 +65,11 @@ set and do not configure the database used by your running website.
 
 ## First database account and showcase
 
-The original signup page still creates browser-only accounts. For the current
-database demonstration, use the Postman registration and login requests from
-[the collection guide](postman.md). To sign in to Studio, use that database
-username/password in Studio's sign-in form. Postman cookies are separate from
-browser cookies, so Postman login alone does not sign the browser in.
+Open `/signup.html` to register a database account; successful registration also
+signs you in. `/login.html` and Database Studio share the same server session.
+Existing browser-only accounts are not imported automatically. The board still
+stores tasks locally during this transition, separately for each database user ID.
+You can also use [Postman](postman.md); its cookie jar is separate from the browser.
 
 Open `/studio.html`, sign in, add the four demo tasks and select Tasks. Inspect
 documents, enable populate, refresh insights and download a JSON export.
@@ -85,6 +85,7 @@ socket access and do not require Atlas or your project's `.env`.
 npm run test:api:auth
 npm run test:api:files
 npm run test:frontend
+npm run test:frontend:auth
 ```
 
 See [test evidence and limitations](api-integration-tests.md). DOM tests do not
@@ -98,7 +99,7 @@ visitors to a deployed website do not install Node or MongoDB.
 | Connection refused in browser | Start `npm run dev`; verify port 3000 and leave the terminal open. |
 | MongoDB startup failure | URI, database-user credentials, cluster readiness and IP access list. |
 | Sign-in unavailable (503) | MongoDB connection and JWT_SECRET; restart after editing configuration. |
-| Browser account cannot sign in to Studio | Register a database account via the API; localStorage accounts are separate for now. |
+| Browser account cannot sign in to Studio | Register through the updated signup page; old localStorage accounts are separate. |
 | Transactions required | Use a replica set or Atlas cluster. |
 | Port already used | Use the existing server or change PORT; do not terminate unrelated processes. |
 | npm dependency engine warning | Use a supported Node version, preferably the tested Node 26. |

@@ -62,11 +62,16 @@ window.addEventListener('error', event => {
 });
 
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
     initTheme();
 
-    if (!requireAuth()) return;
+    try { if (!await requireAuth()) return; }
+    catch (error) {
+        const notice = document.getElementById('storage-notice');
+        notice.textContent = `${error.message} Reload this page to retry.`; notice.hidden = false;
+        return;
+    }
 
     const username = getSessionUsername();
 
@@ -360,7 +365,7 @@ function wireGlobalActions() {
         .getElementById('logout-btn')
         .addEventListener(
             'click',
-            logoutUser
+            async () => { try { await logoutUser(); } catch (error) { showToast(error.message, 8000); } }
         );
 
 

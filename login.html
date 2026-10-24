@@ -31,7 +31,7 @@
                 <button type="submit" class="primary signup-submit">Open my workspace <span>↗</span></button>
             </form>
             <p class="login-prompt">New here? <a href="signup.html">Find your starting point →</a></p>
-            <div class="storage-note"><span>ⓘ</span><p>Use the browser where you created your demo account. Your account and tasks are saved on this device.</p></div>
+            <div class="storage-note"><span>ⓘ</span><p>Sign in with your database account. Older browser-only demo accounts are not migrated automatically.</p></div>
             </div><p class="form-footer">Small steps. A little more momentum.</p>
         </section>
     </main>
@@ -39,7 +39,7 @@
     <script type="module">
         import { requireNoAuth, loginUser } from './js/auth.js';
         import { attachAuthValidation } from './js/formValidation.js';
-        requireNoAuth();
+        await requireNoAuth();
         const form = document.getElementById('login-form');
         attachAuthValidation(form);
         const errorMsg = document.getElementById('auth-error');
@@ -51,10 +51,17 @@
             toggle.textContent = show ? 'Hide' : 'Show';
             toggle.setAttribute('aria-pressed', String(show));
         });
-        form.addEventListener('submit', event => {
+        form.addEventListener('submit', async event => {
             event.preventDefault();
             errorMsg.classList.add('hidden');
-            const result = loginUser(document.getElementById('username').value, document.getElementById('password').value);
+            const submit = form.querySelector('button[type="submit"]');
+            if (submit.disabled) return;
+            submit.disabled = true;
+            const result = await loginUser(document.getElementById('username').value, document.getElementById('password').value);
+            submit.disabled = false;
+            password.value = '';
+            const confirmation = document.getElementById('confirm-password');
+            if (confirmation) confirmation.value = '';
             if (result.success) window.location.href = 'board.html';
             else { errorMsg.textContent = result.error; errorMsg.classList.remove('hidden'); }
         });

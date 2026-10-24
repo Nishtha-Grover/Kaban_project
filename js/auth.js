@@ -1,197 +1,84 @@
-/**
- * Simulated client-side authentication for Phase 1.
- * 
- * WARNING: Authentication is simulated entirely client-side using localStorage.
- * Passwords are saved in plain text. This is explicitly for Phase 1 simulation only.
- * Real server-side authentication (JWT, hashed passwords) will be implemented in Phase 2
- * once Express + MongoDB are introduced.
- */
+// Server session only. Credentials and JWTs are never stored in browser storage.
+let currentUser = null;
+let watching = false;
 
-const USERS_KEY = 'kanban-users';
-const SESSION_KEY = 'kanban-session';
-
-/**
- * Get all registered users.
- * @returns {Object} users object { username: { username, password, createdAt } }
- */
-function getUsers() {
+async function authRequest(path, body) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 10000);
     try {
-        const saved = localStorage.getItem(USERS_KEY);
-        if (saved === null) return Object.create(null);
-        const users = JSON.parse(saved);
-        if (!users || typeof users !== 'object' || Array.isArray(users)) {
-            throw new Error('Invalid account storage');
-        }
-        for (const [name, user] of Object.entries(users)) {
-            if (!user || typeof user !== 'object' || user.username !== name || typeof user.password !== 'string') {
-                throw new Error('Invalid account record');
-            }
-        }
-        return Object.assign(Object.create(null), users);
-    } catch (e) {
-        // Do not replace unreadable existing accounts with an empty registry.
-        throw new Error('Saved accounts could not be read. Check browser storage settings. Existing data has not been replaced.');
-    }
-}
-
-/**
- * Save users back to localStorage
- */
-function saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-/**
- * Attempt to register a new user.
- * @param {string} username 
- * @param {string} password 
- * @returns {Object} { success: boolean, error?: string }
- */
-export function registerUser(username, password) {
-    if (!username || username.trim().length < 3) {
-        return { success: false, error: 'Username must be at least 3 characters long.' };
-    }
-    if (!password || password.length < 3) {
-        return { success: false, error: 'Password must be at least 3 characters long.' };
-    }
-
-    const trimmedUsername = username.trim();
-    let users;
-    try {
-        users = getUsers();
+        const response = await fetch(`/api/auth/${path}`, {
+            method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin', cache: 'no-store',
+            signal: controller.signal,
+            ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        });
+        const result = response.status === 204 ? null : await response.json();
+        if (!response.ok) throw Object.assign(new Error(response.status === 503
+            ? 'Database sign-in is unavailable. Check the server’s MongoDB and JWT configuration.'
+            : result?.error?.message || 'Authentication failed. Please try again.'), { status: response.status });
+        return result;
     } catch (error) {
-        return { success: false, error: error.message };
-    }
-
-    if (users[trimmedUsername]) {
-        return { success: false, error: 'Username already exists. Please choose another.' };
-    }
-
-    users[trimmedUsername] = {
-        username: trimmedUsername,
-        password: password, // Plaintext, Phase 1 only!
-        createdAt: new Date().toISOString()
-    };
-
-    try {
-        saveUsers(users);
-    } catch {
-        return { success: false, error: 'Account could not be saved. Browser storage may be full or disabled. Please try again.' };
-    }
-    const session = loginUser(trimmedUsername, password);
-    if (!session.success) {
-        return { success: false, error: 'Your account was saved, but sign-in failed. Enable browser storage and log in with this account.' };
-    }
-    return session;
+        if (error.name === 'AbortError') throw new Error('Sign-in request timed out. Please try again.');
+        if (error instanceof TypeError) throw new Error('Cannot reach the server. Start npm run dev and try again.');
+        throw error;
+    } finally { clearTimeout(timer); }
 }
 
-/**
- * Attempt to log in a user.
- * @param {string} username 
- * @param {string} password 
- * @returns {Object} { success: boolean, error?: string }
- */
-export function loginUser(username, password) {
-    const trimmedUsername = (username || '').trim();
-    let users;
+export async function registerUser(username, password) {
     try {
-        users = getUsers();
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-    const user = users[trimmedUsername];
-
-    if (!user) {
-        return { success: false, error: 'Invalid username or password.' };
-    }
-    
-    if (user.password !== password) {
-        return { success: false, error: 'Invalid username or password.' };
-    }
-
-    // Set active session
-    try {
-        localStorage.setItem(SESSION_KEY, trimmedUsername);
-    } catch {
-        return { success: false, error: 'Could not save your login session. Enable browser storage and try again.' };
-    }
-    return { success: true };
+        await authRequest('register', { username: username.trim(), password });
+        const login = await loginUser(username, password);
+        return login.success ? login : { success: false, error: `Account created. Please sign in: ${login.error}` };
+    } catch (error) { return { success: false, error: error.message }; }
 }
-
-/**
- * Log out the current user.
- */
-export function logoutUser() {
+export async function loginUser(username, password) {
+    currentUser = null;
     try {
-        localStorage.removeItem(SESSION_KEY);
-    } catch {
-        // Still leave the workspace when the browser blocks storage access.
-    }
+        const result = await authRequest('login', { username: username.trim(), password });
+        currentUser = result.user;
+        return { success: true };
+    } catch (error) { return { success: false, error: error.message }; }
+}
+export async function refreshSession() {
+    currentUser = null;
+    try { currentUser = (await authRequest('me')).user; return currentUser; }
+    catch (error) { if (error.status === 401) return null; throw error; }
+}
+export function getSessionUsername() { return currentUser?.username ?? null; }
+// Transitional local-board namespace prevents claiming legacy username-based data.
+export function getWorkspaceIdentity() { return currentUser ? `database-${currentUser.id}` : null; }
+export async function logoutUser() {
+    await authRequest('logout', {});
+    currentUser = null;
     window.location.replace('index.html');
 }
-
-/**
- * Get the currently logged-in username.
- * @returns {string|null}
- */
-export function getSessionUsername() {
-    try {
-        const username = localStorage.getItem(SESSION_KEY);
-        if (!username) return null;
-        const users = getUsers();
-        if (Object.hasOwn(users, username)) return username;
-        localStorage.removeItem(SESSION_KEY);
-    } catch {
-        // An unreadable session is treated as signed out.
-    }
-    return null;
-}
-
-let sessionWatcherInstalled = false;
-
-function watchWorkspaceSession(username) {
-    if (sessionWatcherInstalled) return;
-    sessionWatcherInstalled = true;
-    const check = () => {
-        const current = getSessionUsername();
-        if (current !== username) {
-            // Prevent the old account's board being used during navigation.
-            document.documentElement.style.visibility = 'hidden';
-            window.location.replace(current ? 'board.html' : 'login.html');
-        }
+function watchSession(expectedId) {
+    if (watching) return;
+    watching = true;
+    let checking = false;
+    const check = async () => {
+        if (checking || document.visibilityState === 'hidden') return;
+        checking = true;
+        const main = document.getElementById('workspace-main');
+        if (main) main.inert = true;
+        try {
+            const user = await refreshSession();
+            if (!user || user.id !== expectedId) { window.location.replace(user ? 'board.html' : 'login.html'); return; }
+            if (main) main.inert = false;
+        } catch (error) {
+            const notice = document.getElementById('storage-notice');
+            if (notice) { notice.textContent = `${error.message} Reload this page before editing.`; notice.hidden = false; }
+        } finally { checking = false; }
     };
-    window.addEventListener('storage', event => {
-        if (event.key === SESSION_KEY || event.key === USERS_KEY || event.key === null) check();
-    });
     window.addEventListener('pageshow', check);
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') check();
-    });
+    document.addEventListener('visibilitychange', check);
 }
-
-/**
- * Call this on protected pages (like board.html)
- * Redirects to login.html if no session exists.
- */
-export function requireAuth() {
-    const session = getSessionUsername();
-    if (!session) {
-        window.location.replace('login.html');
-        return false;
-    }
-    watchWorkspaceSession(session);
-    return true;
+export async function requireAuth() {
+    const user = await refreshSession();
+    if (!user) { window.location.replace('login.html'); return false; }
+    watchSession(user.id); return true;
 }
-
-/**
- * Call this on public auth pages (index, login, signup)
- * Redirects to board.html if a session ALREADY exists.
- */
-export function requireNoAuth() {
-    const session = getSessionUsername();
-    if (session) {
-        window.location.replace('board.html');
-        return false;
-    }
+export async function requireNoAuth() {
+    try {
+        if (await refreshSession()) { window.location.replace('board.html'); return false; }
+    } catch { /* Leave the form available; submission displays connection errors. */ }
     return true;
 }

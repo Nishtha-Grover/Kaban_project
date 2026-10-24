@@ -1,0 +1,52 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { SourceTextModule } from 'node:vm';
+import { JSDOM } from 'jsdom';
+import { startApiFixture } from './helpers/apiFixture.js';
+
+test('frontend authentication uses server cookies without storing credentials', { timeout: 90000 }, async t => {
+    const fixture = await startApiFixture();
+    const dom = new JSDOM('<main></main>', { url: fixture.baseUrl, runScripts: 'outside-only' });
+    t.after(async () => { dom.window.close(); await fixture.close(); });
+    const { window } = dom;
+    window.AbortController = AbortController;
+    window.TextEncoder = TextEncoder;
+    window.fetch = async (path, options = {}) => {
+        const url = new URL(path, fixture.baseUrl).href;
+        const headers = new Headers(options.headers), cookie = dom.cookieJar.getCookieStringSync(url);
+        if (cookie) headers.set('Cookie', cookie);
+        const response = await fetch(url, { ...options, headers });
+        for (const value of response.headers.getSetCookie()) dom.cookieJar.setCookieSync(value, url);
+        return response;
+    };
+    window.localStorage.setItem('flowforge-board-student', 'legacy board preserved');
+    window.localStorage.setItem('kanban-session', 'student');
+    const module = new SourceTextModule(await readFile(new URL('../js/auth.js', import.meta.url), 'utf8'), { context: dom.getInternalVMContext() });
+    await module.link(() => assert.fail('unexpected import')); await module.evaluate();
+    const auth = module.namespace;
+    assert.equal(await auth.refreshSession(), null); // A forged/legacy local session is ignored.
+    assert.equal(auth.getSessionUsername(), null);
+    const password = 'Frontend-Password-123!';
+    assert.equal((await auth.registerUser('student', password)).success, true);
+    assert.equal(auth.getSessionUsername(), 'student');
+    assert.match(auth.getWorkspaceIdentity(), /^database-[a-f0-9]{24}$/);
+    assert.equal(window.localStorage.getItem('kanban-users'), null);
+    assert.equal(window.localStorage.getItem('flowforge-board-student'), 'legacy board preserved');
+    assert.equal(window.localStorage.getItem('kanban-session'), 'student');
+    assert.equal(window.document.cookie.includes('flowforge_session'), false);
+    assert.equal((await auth.refreshSession()).username, 'student');
+    assert.equal((await auth.registerUser('student', password)).success, false);
+    assert.equal((await auth.loginUser('student', 'wrong')).success, false);
+    assert.equal(auth.getWorkspaceIdentity(), null);
+    assert.equal((await auth.loginUser('student', password)).success, true);
+    await window.fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(await auth.refreshSession(), null);
+    const validator = new SourceTextModule(await readFile(new URL('../js/formValidation.js', import.meta.url), 'utf8'), { context: dom.getInternalVMContext() });
+    await validator.link(() => assert.fail('unexpected import')); await validator.evaluate();
+    const validate = validator.namespace.validateAuthValues;
+    assert.ok(validate({ username: 'bad name', password: 'abc', confirmPassword: 'abc' }, true).username);
+    assert.ok(validate({ username: 'student', password: 'abc', confirmPassword: 'abc' }, true).password);
+    assert.ok(validate({ username: 'student', password: '😀'.repeat(20), confirmPassword: '😀'.repeat(20) }, true).password);
+    assert.equal(Object.keys(validate({ username: 'student', password, confirmPassword: password }, true)).length, 0);
+});

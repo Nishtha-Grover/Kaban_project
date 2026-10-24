@@ -1,5 +1,5 @@
 import { computeLockStates } from './graph.js';
-import { getSessionUsername } from './auth.js';
+import { getWorkspaceIdentity as getSessionUsername } from './auth.js';
 import { normalizeTask, TASK_STATUSES } from './taskModel.js';
 import { buildDependencyIndex } from './dependencyModel.js';
 import { prerequisiteError, transitionError } from './dependencyRules.js';

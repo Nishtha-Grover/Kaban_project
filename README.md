@@ -14,10 +14,11 @@ guide, and run `npm run dev`. Open http://127.0.0.1:3000/ or
 http://127.0.0.1:3000/studio.html. Keep that terminal running and use another tab
 for Git commands. Do not use the old static preview for backend features.
 
-**Current integration boundary:** the original board/login/signup still use
-browser storage; Database Studio uses the authenticated MongoDB APIs. These are
-parts of the same repository, not separate projects, but the board's backend
-integration and data migration remain unfinished. Deployment is not ready yet.
+**Current integration boundary:** signup/login now use database accounts and an
+HttpOnly session cookie, shared with Database Studio. Board tasks still use
+browser storage in a namespace scoped to the database user ID. Task API
+integration and explicit migration of older browser data remain unfinished.
+Deployment is not ready yet.
 The feature descriptions below include the preserved Evaluation 1 functionality.
 
 The project extends a traditional Kanban board into a smart workspace designed especially for college students. It allows students to organize assignments, exams, labs, coding practice, project work, presentations, and other academic tasks while managing priorities, deadlines, and task dependencies.
@@ -534,7 +535,7 @@ It is appropriate for:
 - Academic projects
 - Local personal use
 
-The Evaluation 1 browser-only authentication is not production authentication. Evaluation 2 adds bcrypt and JWT cookie authentication on the server, but the original login/signup pages still need integration with it.
+Signup/login now use the Evaluation 2 bcrypt and JWT cookie API. Existing Evaluation 1 browser accounts are not database accounts; register through the updated signup page. Legacy browser data is preserved but is not automatically imported.
 
 ---
 
