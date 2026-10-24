@@ -117,7 +117,7 @@ function createTaskElement(task, allTasks, lockState) {
     actions.className = 'task-actions';
 
     const editBtn = makeActionButton('Edit', () => window.openTaskModal(task.id));
-    const deleteBtn = makeActionButton('Delete', () => {
+    const deleteBtn = makeActionButton('Delete', async () => {
         const current = getTasks();
         if (!current[task.id]) {
             showToast('This task no longer exists.');
@@ -125,13 +125,15 @@ function createTaskElement(task, allTasks, lockState) {
             return;
         }
         const dependents = getTaskDependencies(task.id).dependents.map(id => current[id]).filter(Boolean);
-        const impact = dependents.length
-            ? `\n\nIt is a prerequisite for ${dependents.length} task(s):\n${dependents.map(item => `• ${item.title}`).join('\n')}\n\nThose dependency links will be removed.`
-            : '';
-        if (confirm(`Delete “${current[task.id].title}”?${impact}\n\nYou can restore this change using Undo.`)) {
-            deleteTask(task.id);
-            showToast('Task deleted. Use Undo to restore it.');
-            document.getElementById('undo-btn')?.focus();
+        if (dependents.length) {
+            showToast('Remove prerequisite links from dependent tasks before deleting this task.', 8000);
+            return;
+        }
+        if (confirm(`Delete “${current[task.id].title}” from the database? This cannot currently be undone.`)) {
+            deleteBtn.disabled = true;
+            try { await deleteTask(task.id); showToast('Task deleted from database'); }
+            catch (error) { showToast(error.message, 12000); }
+            finally { deleteBtn.disabled = false; }
         }
     });
     actions.append(editBtn, deleteBtn);
@@ -221,8 +223,10 @@ function createTaskElement(task, allTasks, lockState) {
         option.selected = value === task.status;
         move.appendChild(option);
     });
-    move.addEventListener('change', () => {
-        if (!moveTask(task.id, move.value)) move.value = task.status;
+    move.addEventListener('change', async () => {
+        move.disabled = true;
+        if (!await moveTask(task.id, move.value)) move.value = task.status;
+        move.disabled = false;
     });
     moveLabel.appendChild(move);
     el.appendChild(moveLabel);

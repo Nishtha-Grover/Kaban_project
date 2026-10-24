@@ -71,11 +71,10 @@ git shortlog -sn evaluation-1-enhancements..HEAD
 
 ## Outstanding completion work
 
-- Connect board tasks to the task APIs. Signup/login now use database
-  authentication, but board tasks still use localStorage scoped to database user ID.
 - Decide and implement explicit local-task migration without overwriting user data.
-- Integrate task attachment controls and server-backed activity into the board.
-- Reconcile undo and College Task Library import with server persistence.
+- Integrate task attachment controls into the board. Server-backed activity is connected.
+- Implement transactional undo and bulk reset (currently disabled). Library imports
+  already persist, but run sequentially and can partially complete.
 - Add integration tests for those completed board flows and check mobile/visual UI.
 - Configure the actual application database/Atlas and verify it through the website.
 - Implement hosting adapter/routing, HTTPS configuration and hosting upload limits;

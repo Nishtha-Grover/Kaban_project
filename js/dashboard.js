@@ -110,7 +110,7 @@ export function renderActivityView() {
     container.replaceChildren();
     const summary = document.createElement('p');
     summary.className = 'timeline-summary';
-    summary.textContent = `${activities.length} recent events · Your workspace keeps the latest 60 events.`;
+    summary.textContent = `${activities.length} recent events · Showing the latest 50 database events.`;
     container.appendChild(summary);
     const groups = new Map();
     [...activities].sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)).forEach(activity => {

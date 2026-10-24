@@ -59,7 +59,7 @@ function handleDrop(event) {
     moveTask(taskId, newStatus);
 }
 
-export function moveTask(taskId, newStatus) {
+export async function moveTask(taskId, newStatus) {
     if (!['todo', 'inprogress', 'done'].includes(newStatus)) return false;
     const task = getTask(taskId);
     if (!task || task.status === newStatus) return false;
@@ -74,9 +74,8 @@ export function moveTask(taskId, newStatus) {
     }
 
     try {
-        updateTaskStatus(taskId, newStatus);
+        await updateTaskStatus(taskId, newStatus);
     } catch (error) {
-        if (error.name !== 'TaskDependencyError') throw error;
         showToast(error.message, 8000);
         return false;
     }

@@ -30,10 +30,18 @@ export async function requestJson(url, {
             credentials: 'same-origin'
         });
         if (!response.ok) {
-            const message = response.status === 401 ? 'Please log in to continue.'
+            let message = response.status === 401 ? 'Please log in to continue.'
                 : response.status === 403 ? 'You do not have access to this resource.'
                 : response.status === 429 ? 'Too many requests. Wait a moment and retry.'
                 : `${label} failed (HTTP ${response.status}). Please retry.`;
+            // Only display structured validation messages from our task endpoint.
+            if (typeof url === 'string' && url.startsWith('/api/tasks') && [400, 409].includes(response.status)) {
+                const detail = await response.json().catch(() => null);
+                if (typeof detail?.error?.message === 'string') message = detail.error.message;
+                const fields = detail?.error?.fields;
+                if (fields && typeof fields === 'object') message += ' ' + Object.entries(fields)
+                    .filter(([, value]) => typeof value === 'string').map(([key, value]) => `${key}: ${value}`).join(' ');
+            }
             throw new ApiError(message, { code: 'HTTP', status: response.status });
         }
         if (response.status === 204 || method.toUpperCase() === 'HEAD') return null;

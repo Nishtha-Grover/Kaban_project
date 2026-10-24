@@ -95,7 +95,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
 
-    loadState();
+    try { await loadState(); }
+    catch (error) {
+        const notice = document.getElementById('storage-notice');
+        notice.textContent = error.message + ' Reload this page to retry.';
+        notice.hidden = false;
+    }
 
     renderEverything();
     switchView('dashboard');
@@ -449,7 +454,7 @@ function updateUndoButton() {
         !canUndo();
     const info = getUndoInfo();
     button.textContent = info.count ? `↶ Undo (${info.count})` : '↶ Undo';
-    button.title = info.count ? `Undo: ${info.label}. Up to 20 changes in this session. Ctrl/⌘ Z.` : 'No changes to undo in this session.';
+    button.title = info.count ? `Undo: ${info.label}. Up to 20 changes in this session. Ctrl/⌘ Z.` : 'Database undo is not available yet.';
     button.setAttribute('aria-label', info.count ? `Undo: ${info.label}` : 'Nothing to undo');
 
 }
@@ -534,7 +539,7 @@ function wireImportModal() {
 
     confirmBtn.addEventListener(
         'click',
-        () => {
+        async () => {
 
             /*
              * Get IDs of ONLY selected checkboxes.
@@ -580,10 +585,14 @@ function wireImportModal() {
             /*
              * Import ONLY the selected tasks.
              */
-            const count =
-                importTasks(
-                    selectedTasks
-                );
+            if (confirmBtn.disabled) return;
+            confirmBtn.disabled = true;
+            let count;
+            try { count = await importTasks(selectedTasks); }
+            catch (error) {
+                document.getElementById('api-status').textContent = error.message;
+                return;
+            }
 
 
             if (count > 0) {

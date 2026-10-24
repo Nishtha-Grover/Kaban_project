@@ -67,8 +67,8 @@ set and do not configure the database used by your running website.
 
 Open `/signup.html` to register a database account; successful registration also
 signs you in. `/login.html` and Database Studio share the same server session.
-Existing browser-only accounts are not imported automatically. The board still
-stores tasks locally during this transition, separately for each database user ID.
+Existing browser-only accounts are not imported automatically. The board now saves tasks to the database and displays its latest 50 audit events.
+Old browser tasks remain untouched; migration is still pending.
 You can also use [Postman](postman.md); its cookie jar is separate from the browser.
 
 Open `/studio.html`, sign in, add the four demo tasks and select Tasks. Inspect
@@ -86,6 +86,7 @@ npm run test:api:auth
 npm run test:api:files
 npm run test:frontend
 npm run test:frontend:auth
+npm run test:frontend:board
 ```
 
 See [test evidence and limitations](api-integration-tests.md). DOM tests do not

@@ -16,8 +16,18 @@ The live test uses an isolated temporary database to check authentication, CRUD
 and stale-version rejection. A separate transport test checks multiple pages and
 failure without partial results.
 
-This client is not yet wired into board event handlers. Board tasks remain local
-until the next integration update converts state mutations and UI handlers to
-await server results. Legacy data migration, undo/import persistence and upload
-controls remain separate completion tasks. No browser data is changed by this
-preparatory client module.
+The board now uses this client for initial loading, creation, editing, deletion,
+and movement. UI success messages and modal closure wait for saved responses and
+refresh. Activity shows the latest 50 database audit events. Failed or ambiguous
+writes block further changes until reload; no automatic write retries occur.
+
+College Library imports run sequentially. A failure can leave earlier tasks saved;
+the UI reports the confirmed count and requires reload before retry. They are not
+an atomic batch yet. Legacy browser data remains untouched and is not auto-imported.
+Undo and bulk reset are visibly disabled pending transactional server support.
+Attachment controls and deployment remain outstanding.
+
+`npm run test:frontend:board` exercises actual form submission, dropdown movement,
+delete controls, database reloads, dependency rejection, library persistence,
+offline failure, lost-response reconciliation and account-switch isolation with
+JSDOM and an isolated real MongoDB/API. It does not replace visual browser checks.

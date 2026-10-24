@@ -17,6 +17,7 @@ const errorMsg = document.getElementById('modal-error');
 const modalTitle = document.getElementById('modal-title');
 const cancelBtn = document.getElementById('modal-cancel');
 let returnFocus = null;
+let saving = false;
 const shell = document.querySelector('.app-shell');
 
 export function initTaskForm() {
@@ -128,6 +129,7 @@ function openTaskModal(taskId = null) {
 }
 
 function closeTaskModal() {
+    if (saving) return;
     modal.classList.add('hidden');
     shell.inert = false;
     document.body.classList.remove('task-dialog-open');
@@ -135,8 +137,9 @@ function closeTaskModal() {
     target?.focus();
 }
 
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     event.preventDefault();
+    if (saving) return;
 
     const taskId = idInput.value;
     if (taskId && !getTask(taskId)) {
@@ -183,19 +186,16 @@ function handleFormSubmit(event) {
         dependsOn: selectedDeps
     };
 
-    if (taskId) {
-        try {
-            updateTask(taskId, taskData);
-        } catch (error) {
-            if (error.name !== 'TaskDependencyError') throw error;
-            showError(error.message);
-            return;
-        }
-        showToast('Task updated');
-    } else {
-        addTask(taskData);
-        showToast('Task created');
-    }
+    const save = modal.querySelector('[type="submit"]');
+    saving = true; save.disabled = true;
+    try {
+        if (taskId) await updateTask(taskId, taskData);
+        else await addTask(taskData);
+        showToast(taskId ? 'Task saved to database' : 'Task created in database');
+    } catch (error) {
+        showError(error.message);
+        return;
+    } finally { saving = false; save.disabled = false; }
 
     closeTaskModal();
 }
