@@ -24,6 +24,7 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
     const { window } = dom, document = window.document;
     const $ = id => document.getElementById(id);
     window.AbortController = AbortController; window.Headers = Headers;
+    window.TextEncoder = TextEncoder;
     window.FormData = FormData;
     window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     window.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new window.Event('close')); };
@@ -112,12 +113,48 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
         await state.loadState();
         assert.equal(Object.values(state.getTasks()).filter(task => task.title === 'Saved despite lost response').length, 1);
     });
+    await t.test('browser import previews linked tasks, preserves old data and deduplicates retries', async () => {
+        const migration = await use('browserMigration.js'); migration.initBrowserMigration();
+        const old = JSON.stringify({ tasks: {
+            oldA: { title: 'Old prerequisite', status: 'done', dependsOn: [], dueDate: '2026-11-01' },
+            oldB: { title: 'Old dependent', status: 'inprogress', dependsOn: ['oldA'] }
+        } });
+        window.localStorage.setItem('kanban-board-board_user', old);
+        const before = Object.keys(state.getTasks()).length;
+        $('migrate-browser-btn').click();
+        $('migration-source').value = 'kanban-board-board_user';
+        $('migration-source').dispatchEvent(new window.Event('change'));
+        assert.equal($('migration-preview').children.length, 2);
+        $('migration-save').click();
+        await until(() => !$('migration-source').disabled);
+        assert.match($('migration-status').textContent, /2 tasks imported/);
+        assert.equal(Object.keys(state.getTasks()).length, before + 2);
+        const a = Object.values(state.getTasks()).find(task => task.title === 'Old prerequisite');
+        const b = Object.values(state.getTasks()).find(task => task.title === 'Old dependent');
+        assert.equal(b.dependsOn[0], a.id); assert.equal(b.status, 'inprogress');
+        assert.equal(a.dueDate, '2026-11-01');
+        assert.equal(window.localStorage.getItem('kanban-board-board_user'), old);
+        const body = { tasks: migration.parseBrowserBackup(old) };
+        const response = await window.fetch('/api/tasks/import-browser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        assert.equal(response.status, 200); assert.equal((await response.json()).alreadyImported, true);
+        await state.loadState(); assert.equal(Object.keys(state.getTasks()).length, before + 2);
+        for (const broken of [
+            [{ legacyId: 'x', title: 'Missing edge', status: 'todo', dependsOn: ['missing'] }],
+            [{ legacyId: 'x', title: 'Cycle A', status: 'todo', dependsOn: ['y'] }, { legacyId: 'y', title: 'Cycle B', status: 'todo', dependsOn: ['x'] }],
+            [{ legacyId: 'x', title: 'Valid task', status: 'todo', dependsOn: [] }, { legacyId: 'y', title: '', status: 'todo', dependsOn: [] }]
+        ]) {
+            const rejected = await window.fetch('/api/tasks/import-browser', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tasks: broken }) });
+            assert.equal(rejected.status, 400);
+        }
+        await state.loadState(); assert.equal(Object.keys(state.getTasks()).length, before + 2);
+        $('migration-close').click();
+    });
     let filePath;
     await t.test('Files dialog uploads, lists, downloads and removes bytes', async () => {
         const task = Object.values(state.getTasks())[0];
         const card = document.querySelector(`[data-id="${task.id}"]`);
         [...card.querySelectorAll('button')].find(button => button.textContent === 'Files').click();
-        const dialog = document.querySelector('.attachment-dialog');
+        const dialog = document.querySelector('dialog[aria-labelledby="attachment-title"]');
         await until(() => dialog.querySelector('[data-file-status]').textContent.includes('No files'));
         const input = dialog.querySelector('input[type=file]');
         Object.defineProperty(input, 'files', { configurable: true, value: [new File(['Attachment contents'], 'notes.txt', { type: 'text/plain' })] });

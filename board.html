@@ -44,7 +44,7 @@
 
         <main class="workspace" id="workspace-main">
             <p id="storage-notice" role="alert" hidden></p>
-            <p class="studio-notice">Tasks and recent activity now load from your database workspace. Older browser tasks are preserved but not imported. Undo and bulk reset are temporarily unavailable.</p>
+            <p class="studio-notice">Tasks and recent activity now load from your database workspace. Undo and bulk reset are temporarily unavailable. <button type="button" class="text-button" id="migrate-browser-btn">Import older browser tasks</button></p>
             <div class="workspace-path"><button id="navigation-toggle" class="secondary" type="button" aria-expanded="false" aria-controls="workspace-sidebar">☰ Menu</button><span>My workspace <span aria-hidden="true">/</span> <strong id="workspace-current">Dashboard</strong></span><span class="workspace-status">● Your personal space</span></div>
             <header class="topbar">
                 <div>
@@ -179,6 +179,17 @@
         </div>
     </div>
 
+    <dialog id="migration-dialog" class="attachment-dialog" aria-labelledby="migration-title">
+        <div class="modal-header"><h2 id="migration-title">Bring your earlier work along</h2><button type="button" class="secondary" id="migration-close">Close</button></div>
+        <p>Review your old tasks before importing them into this account. Their statuses, due dates and prerequisite links are preserved. Existing tasks stay unchanged; old activity and attachments are not imported.</p>
+        <div class="attachment-upload">
+            <label for="migration-source">Saved data at this browser address</label><select id="migration-source"></select>
+            <label for="migration-file">Or choose a browser-backup JSON file</label><input id="migration-file" type="file" accept=".json,application/json">
+        </div>
+        <p id="migration-status" role="status"></p><ul id="migration-preview" class="migration-preview"></ul>
+        <p class="field-help">Up to 100 tasks and 100 KB per import. New database creation dates are assigned. Your original browser data is kept.</p>
+        <div class="attachment-pagination"><button type="button" class="secondary" id="migration-backup" disabled>Download backup</button><button type="button" class="primary" id="migration-save" disabled>Import reviewed tasks</button></div>
+    </dialog>
     <div id="toast-container"></div>
 <script type="module" src="js/app.js?v=5"></script></body>
 </html>

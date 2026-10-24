@@ -43,6 +43,7 @@ import {
 } from './theme.js';
 
 import { showToast } from './toast.js';
+import { initBrowserMigration } from './browserMigration.js';
 
 
 let activeView = 'dashboard';
@@ -82,6 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initColumns();
     initTaskForm();
+    initBrowserMigration();
 
     wireNavigation();
     wireBoardControls();

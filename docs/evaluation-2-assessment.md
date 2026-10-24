@@ -71,7 +71,6 @@ git shortlog -sn evaluation-1-enhancements..HEAD
 
 ## Outstanding completion work
 
-- Decide and implement explicit local-task migration without overwriting user data.
 - Implement transactional undo and bulk reset (currently disabled). Library imports
   already persist, but run sequentially and can partially complete.
 - Add integration tests for those completed board flows and check mobile/visual UI.

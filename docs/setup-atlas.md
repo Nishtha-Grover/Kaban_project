@@ -68,7 +68,8 @@ set and do not configure the database used by your running website.
 Open `/signup.html` to register a database account; successful registration also
 signs you in. `/login.html` and Database Studio share the same server session.
 Existing browser-only accounts are not imported automatically. The board now saves tasks to the database and displays its latest 50 audit events.
-Old browser tasks remain untouched; migration is still pending.
+Use “Import older browser tasks” on the board to preview and import a backup.
+Original browser data remains untouched. See [migration details](browser-migration.md).
 You can also use [Postman](postman.md); its cookie jar is separate from the browser.
 
 Open `/studio.html`, sign in, add the four demo tasks and select Tasks. Inspect

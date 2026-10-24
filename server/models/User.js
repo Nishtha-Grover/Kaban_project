@@ -5,12 +5,14 @@ function publicUser(document, result) {
     delete result.__v;
     delete result.workspaceRevision;
     delete result.demoSeedVersion;
+    delete result.migrationHashes;
     return result;
 }
 
 const userSchema = new mongoose.Schema({
     workspaceRevision: { type: Number, default: 0, select: false },
     demoSeedVersion: { type: Number, default: 0, select: false },
+    migrationHashes: { type: [String], default: [], select: false },
     username: {
         type: String,
         required: [true, 'Username is required.'],

@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { listTasks } from '../services/tasks.js';
 import { mutateTaskWithAudit } from '../services/taskAudit.js';
 import { runWorkspaceTransaction } from '../services/transactions.js';
+import { migrateTasks } from '../services/migrateTasks.js';
 
 export const tasksRouter = Router();
 tasksRouter.use(requireAuth);
@@ -21,6 +22,13 @@ tasksRouter.use((req, res, next) => {
         return res.status(415).json({ error: { code: 'JSON_REQUIRED', message: 'Send an application/json request.' } });
     }
     next();
+});
+
+tasksRouter.post('/import-browser', async (req, res, next) => {
+    try {
+        const result = await runWorkspaceTransaction(req.user.id, context => migrateTasks(req.user.id, req.body, context));
+        res.status(result.alreadyImported ? 200 : 201).json(result);
+    } catch (error) { next(error); }
 });
 
 tasksRouter.post('/', async (req, res, next) => {
@@ -42,7 +50,7 @@ tasksRouter.delete('/:id', async (req, res, next) => {
 });
 
 tasksRouter.use((error, req, res, next) => {
-    if (['TASK_VALIDATION', 'TASK_CONFLICT', 'TASK_NOT_FOUND', 'WORKSPACE_UNAVAILABLE', 'TRANSACTIONS_REQUIRED'].includes(error.code)) {
+    if (['MIGRATION_INVALID', 'TASK_VALIDATION', 'TASK_CONFLICT', 'TASK_NOT_FOUND', 'WORKSPACE_UNAVAILABLE', 'TRANSACTIONS_REQUIRED'].includes(error.code)) {
         return res.status(error.status).json({ error: { code: error.code, message: error.message,
             ...(error.fields ? { fields: error.fields } : {}) } });
     }

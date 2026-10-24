@@ -17,9 +17,9 @@ for Git commands. Do not use the old static preview for backend features.
 **Current integration boundary:** signup/login, board tasks and recent activity
 use the authenticated MongoDB APIs shared with Database Studio. Create/edit/move/
 delete and College Task Library imports save to the database. Older browser data
-is preserved but not imported. Undo and bulk reset are temporarily disabled until
+can be previewed and explicitly imported; originals are preserved. Undo and bulk reset are temporarily disabled until
 transactional server operations are implemented. Each task's Files button supports
-upload, download and removal. Explicit migration and deployment remain unfinished.
+upload, download and removal. Deployment remains unfinished.
 The feature descriptions below include the preserved Evaluation 1 functionality.
 
 The project extends a traditional Kanban board into a smart workspace designed especially for college students. It allows students to organize assignments, exams, labs, coding practice, project work, presentations, and other academic tasks while managing priorities, deadlines, and task dependencies.
