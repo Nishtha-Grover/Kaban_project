@@ -2,6 +2,7 @@ import { requestJson } from './httpClient.js';
 import { loadState } from './state.js';
 
 let dialog, taskId, page = 1, generation = 0, busy = false, returnFocus;
+let maxFileBytes = 3 * 1024 * 1024;
 function element(tag, text, className) {
     const node = document.createElement(tag);
     if (text) node.textContent = text;
@@ -21,6 +22,8 @@ async function list() {
     try {
         const result = await requestJson(`${path}?page=${page}`, { label: 'Load attachments' });
         if (version !== generation) return;
+        maxFileBytes = result.maxFileBytes || 3 * 1024 * 1024;
+        dialog.querySelector('.field-help').textContent = `PDF, PNG, JPEG, TXT, CSV or JSON · up to ${maxFileBytes / 1024 / 1024} MiB each.`;
         if (!result.attachments.length && page > 1) { page--; return await list(); }
         const container = dialog.querySelector('[data-file-list]');
         for (const file of result.attachments) {
@@ -60,7 +63,7 @@ async function upload(event) {
     if (busy) return;
     const input = dialog.querySelector('input[type=file]'), file = input.files[0];
     if (!file) { status('Choose a file first.'); return; }
-    if (!file.size || file.size > 10 * 1024 * 1024) { status('Choose a nonempty file up to 10 MiB.'); return; }
+    if (!file.size || file.size > maxFileBytes) { status(`Choose a nonempty file up to ${maxFileBytes / 1024 / 1024} MiB.`); return; }
     const body = new FormData(); body.append('file', file);
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     setBusy(true); status('Uploading file…');
@@ -83,7 +86,7 @@ function createDialog() {
     const close = element('button', 'Close', 'secondary'); close.type = 'button';
     close.addEventListener('click', () => { if (!busy) dialog.close(); });
     header.append(title, close);
-    const help = element('p', 'PDF, PNG, JPEG, TXT, CSV or JSON · up to 10 MiB each.', 'field-help');
+    const help = element('p', 'Loading file limits…', 'field-help');
     const form = element('form', '', 'attachment-upload');
     const label = element('label', 'Choose a file');
     const input = element('input'); input.type = 'file'; input.id = 'attachment-file';

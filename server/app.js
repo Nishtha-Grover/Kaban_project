@@ -6,10 +6,11 @@ import { attachmentsRouter } from './routes/attachments.js';
 import { studioRouter } from './routes/studio.js';
 import { mountFrontend } from './frontend.js';
 
-export function createApp() {
+export function createApp({ serveFrontend = true, attachmentLimit = 10 * 1024 * 1024 } = {}) {
     const app = express();
+    app.locals.attachmentLimit = attachmentLimit;
     app.disable('x-powered-by');
-    app.use(express.json({ limit: '100kb' }));
+    app.use(express.json({ limit: '100kb', inflate: false }));
 
     app.get('/api/health', (req, res) => {
         res.set('Cache-Control', 'no-store').json({
@@ -21,13 +22,14 @@ export function createApp() {
     app.use('/api/studio', studioRouter);
     app.use('/api/tasks/:taskId/attachments', attachmentsRouter);
     app.use('/api/tasks', tasksRouter);
-    mountFrontend(app);
+    if (serveFrontend) mountFrontend(app);
     app.use((req, res) => {
         res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });
     });
 
     app.use((error, req, res, next) => {
         if (res.headersSent) return next(error);
+        if (error.type === 'encoding.unsupported') return res.status(415).json({ error: { code: 'UNSUPPORTED_ENCODING', message: 'Send an uncompressed request.' } });
         if (error.type === 'entity.parse.failed') {
             return res.status(400).json({ error: { code: 'INVALID_JSON', message: 'Request body must contain valid JSON.' } });
         }

@@ -13,3 +13,6 @@ npm-debug.log*
 coverage/
 uploads/
 logs/
+
+dist/
+.netlify/

@@ -73,8 +73,9 @@ git shortlog -sn evaluation-1-enhancements..HEAD
 
 - Complete mobile/visual browser verification; database board flows have integration tests.
 - Configure the actual application database/Atlas and verify it through the website.
-- Implement hosting adapter/routing, HTTPS configuration and hosting upload limits;
-  publish and verify the complete project from another system.
+- Configure Netlify runtime secrets and Atlas network access, then publish and verify
+  the complete project from another system. Adapter/routing, secure cookies and
+  hosted upload limits have local integration tests; live hosting remains unverified.
 - Review and merge branches after verification; preserve the intended commit history.
 
 These are required completion tasks beyond the numbered commit checklist. The

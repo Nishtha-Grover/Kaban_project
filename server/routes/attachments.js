@@ -9,13 +9,13 @@ import { saveUpload, uploadError } from '../services/uploads.js';
 import { validateUploadMetadata } from '../services/uploadValidation.js';
 import { createDownloadHandler } from '../services/downloads.js';
 
-export const parseUpload = multer({ storage: multer.memoryStorage(),
+export const parseUpload = (req, res, next) => multer({ storage: multer.memoryStorage(),
     fileFilter(req, file, callback) {
         try { validateUploadMetadata(file); callback(null, true); }
         catch (error) { callback(error); }
     },
-    limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1, fields: 0, parts: 1 }
-}).single('file');
+    limits: { fileSize: req.app.locals.attachmentLimit || MAX_ATTACHMENT_BYTES, files: 1, fields: 0, parts: 1 }
+}).single('file')(req, res, next);
 
 export const attachmentsRouter = Router({ mergeParams: true });
 attachmentsRouter.get('/', requireAuth, async (req, res, next) => {
@@ -29,7 +29,8 @@ attachmentsRouter.get('/', requireAuth, async (req, res, next) => {
             Attachment.countDocuments(filter)
         ]);
         res.set('Cache-Control', 'private, no-store').json({ attachments: rows.map(row => ({ id: String(row._id),
-            originalName: row.originalName, mimeType: row.mimeType, size: row.size, createdAt: row.createdAt })), page, totalPages: Math.ceil(total / 20), total });
+            originalName: row.originalName, mimeType: row.mimeType, size: row.size, createdAt: row.createdAt })), page, totalPages: Math.ceil(total / 20), total,
+            maxFileBytes: req.app.locals.attachmentLimit || MAX_ATTACHMENT_BYTES });
     } catch (error) { next(error); }
 });
 attachmentsRouter.delete('/:attachmentId', requireAuth, async (req, res, next) => {
@@ -71,7 +72,7 @@ attachmentsRouter.use((error, req, res, next) => {
     if (error instanceof multer.MulterError) {
         const tooLarge = error.code === 'LIMIT_FILE_SIZE';
         return res.status(tooLarge ? 413 : 400).json({ error: { code: error.code,
-            message: tooLarge ? 'File exceeds 10 MiB.' : 'Upload exactly one file in the file field, with no extra fields.' } });
+            message: tooLarge ? `File exceeds ${(req.app.locals.attachmentLimit || MAX_ATTACHMENT_BYTES) / 1024 / 1024} MiB.` : 'Upload exactly one file in the file field, with no extra fields.' } });
     }
     if (['UPLOAD_INVALID', 'TRANSACTIONS_REQUIRED', 'WORKSPACE_UNAVAILABLE', 'DOWNLOAD_INVALID', 'DOWNLOAD_NOT_FOUND'].includes(error.code)) {
         return res.status(error.status).json({ error: { code: error.code, message: error.message } });

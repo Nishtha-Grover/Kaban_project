@@ -41,6 +41,9 @@ export function createDownloadHandler({ load = loadDownload } = {}) {
     return async (req, res, next) => {
         try {
             const { filename, data } = await load(req.user.id, req.params.taskId, req.params.attachmentId);
+            if (data.length > (req.app?.locals.attachmentLimit || MAX_ATTACHMENT_BYTES)) {
+                throw Object.assign(new Error('This file exceeds the hosted download limit. Download it through the local server.'), { status: 413, code: 'DOWNLOAD_INVALID' });
+            }
             res.attachment(filename);
             res.set({ 'Content-Type': 'application/octet-stream', 'X-Content-Type-Options': 'nosniff',
                 'Cache-Control': 'private, no-store', 'Content-Length': String(data.length),

@@ -3,7 +3,8 @@ import { mkdir, appendFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const defaultFile = fileURLToPath(new URL('../../logs/activity.jsonl', import.meta.url));
+const defaultFile = process.env.AWS_LAMBDA_FUNCTION_NAME ? '/tmp/flowforge/activity.jsonl'
+    : fileURLToPath(new URL('../../logs/activity.jsonl', import.meta.url));
 
 // MongoDB remains the authoritative audit. This local file is a secondary log.
 export function createFilesystemAudit({ file = defaultFile, makeDirectory = mkdir,

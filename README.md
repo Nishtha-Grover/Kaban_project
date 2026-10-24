@@ -596,3 +596,9 @@ These are original Evaluation 1 reference screenshots; they predate the enhanced
 ![Kanban Board](docs/screenshots/5_kanban_board.png)
 ![Dependencies](docs/screenshots/6_dependencies.png)
 ![Activity](docs/screenshots/7_activity.png)
+# Hosting preparation
+
+Netlify support is included; the site is not yet deployed. See
+[Atlas and Netlify steps](docs/netlify-deployment.md). Run `npm run build` and
+`npm run test:hosting` to check the public build and serverless adapter locally.
+The hosting test uses an isolated local MongoDB replica set.

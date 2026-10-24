@@ -108,13 +108,9 @@ visitors to a deployed website do not install Node or MongoDB.
 
 ## Deployment boundary
 
-No live deployment has been completed. Publishing only the HTML folder to
-Netlify will not run this Express server. A serverless adapter/routing layer or a
-separate Node host is still required, along with Atlas, server-side environment
-variables and verified HTTPS cookies. NODE_ENV=production requires both secrets.
-
-The current frontend expects same-origin `/api` routes. Uploads store bytes in
-MongoDB, but the hosting request-size limit must still be reconciled with the
-10 MiB application limit. Local filesystem audit logs are secondary and are not
-durable serverless storage. Do not publish the repository root as static files;
-Express currently exposes only an explicit frontend allowlist.
+No live deployment has been completed. The Netlify adapter, same-origin API
+rewrite and public-only build are now included. Follow [Netlify deployment](netlify-deployment.md)
+to configure Atlas and runtime secrets, then verify the deployed site.
+Hosted attachments have a 3 MiB limit; local Express retains 10 MiB.
+Filesystem audit logs are secondary and temporary on serverless hosting.
+Never publish the repository root as static files; the build publishes only `dist`.
