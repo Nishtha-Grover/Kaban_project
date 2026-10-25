@@ -5,22 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlowForge Workspace</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/workspace.css">
+    <link rel="stylesheet" href="css/board.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/attachments.css">
 </head>
 <body class="app-body">
     <div class="app-shell">
-        <aside class="sidebar">
+        <aside class="sidebar" id="workspace-sidebar">
             <a class="brand" href="index.html">
                 <span class="brand-mark">F</span>
                 <span>FlowForge</span>
             </a>
 
+            <div class="workspace-label"><span class="workspace-symbol">✳</span><div><strong>My workspace</strong><small>A little space for big ideas</small></div></div>
+            <p class="nav-caption">YOUR EVERYDAY FLOW</p>
             <nav class="side-nav" aria-label="Workspace navigation">
                 <button class="nav-item active" data-view-target="dashboard"><span>⌂</span> Dashboard</button>
                 <button class="nav-item" data-view-target="board"><span>▦</span> Board</button>
                 <button class="nav-item" data-view-target="graph"><span>⌘</span> Dependencies</button>
                 <button class="nav-item" data-view-target="activity"><span>◷</span> Activity</button>
+                <a class="nav-item" href="studio.html"><span>▤</span> Database Studio</a>
             </nav>
 
+            <div class="sidebar-note"><span>↗</span><strong>One step at a time.</strong><p>Small progress is still progress. Make room for it.</p></div>
             <div class="sidebar-bottom">
                 <button class="nav-item" id="theme-toggle"><span id="theme-icon">☾</span> <span id="theme-label">Dark mode</span></button>
                 <div class="user-card">
@@ -34,7 +42,10 @@
             </div>
         </aside>
 
-        <main class="workspace">
+        <main class="workspace" id="workspace-main">
+            <p id="storage-notice" role="alert" hidden></p>
+            <p class="studio-notice">Your tasks and activity are saved to your database workspace. Undo restores the latest task action until the next workspace change. <button type="button" class="text-button" id="migrate-browser-btn">Import older browser tasks</button></p>
+            <div class="workspace-path"><button id="navigation-toggle" class="secondary" type="button" aria-expanded="false" aria-controls="workspace-sidebar">☰ Menu</button><span>My workspace <span aria-hidden="true">/</span> <strong id="workspace-current">Dashboard</strong></span><span class="workspace-status">● Your personal space</span></div>
             <header class="topbar">
                 <div>
                     <p class="eyebrow">PERSONAL WORKSPACE</p>
@@ -53,12 +64,13 @@
                     <div>
                         <span class="eyebrow">GOOD TO SEE YOU</span>
                         <h2>Keep the momentum, <span data-current-user>User</span>.</h2>
-                        <p>Finish prerequisites first, unlock dependent work, and keep your project moving.</p>
+                        <p>A clear plan. A small step. A little more room for what matters.</p>
                     </div>
                     <button class="primary large" id="hero-add-task">Create a task</button>
                 </div>
 
-                <div class="metric-grid">
+                <div class="dashboard-section-heading"><h2>Your work, at a glance</h2><button class="text-button" data-view-target="board">Open your board ↗</button></div>
+                <div class="metric-grid" aria-label="Task overview">
                     <article class="metric-card"><span>Total tasks</span><strong id="metric-total">0</strong><small>Across the workspace</small></article>
                     <article class="metric-card"><span>To do</span><strong id="metric-todo">0</strong><small>Ready or waiting</small></article>
                     <article class="metric-card"><span>In progress</span><strong id="metric-progress">0</strong><small>Currently active</small></article>
@@ -72,8 +84,9 @@
                             <div><span class="eyebrow">PROJECT HEALTH</span><h3>Overall progress</h3></div>
                             <strong id="progress-percent">0%</strong>
                         </div>
-                        <div class="progress-track"><div id="progress-bar-fill"></div></div>
-                        <p>Progress is calculated from tasks moved to Done.</p>
+                        <div class="progress-track" id="dashboard-progress" role="progressbar" aria-label="Task completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-bar-fill"></div></div>
+                        <p id="progress-summary">Create your first task to start tracking progress.</p>
+                        <button class="text-button" data-view-target="graph">See how your tasks connect →</button>
                     </article>
 
                     <article class="panel weather-panel">
@@ -81,16 +94,16 @@
                             <div><span class="eyebrow">FOCUS WEATHER</span><h3>Plan your session</h3></div>
                             <strong id="weather-temp">--°C</strong>
                         </div>
-                        <p id="weather-copy">Use your location to load current weather through a REST API.</p>
+                        <p id="weather-copy">A little context for your day. Load the weather near you.</p>
                         <button class="secondary compact" id="weather-button">Load weather</button>
                     </article>
 
-                    <article class="panel">
+                    <article class="panel deadlines-panel">
                         <div class="panel-heading"><div><span class="eyebrow">NEXT UP</span><h3>Upcoming deadlines</h3></div></div>
                         <div id="upcoming-list" class="stack-list"></div>
                     </article>
 
-                    <article class="panel">
+                    <article class="panel recent-panel">
                         <div class="panel-heading"><div><span class="eyebrow">RECENT</span><h3>Activity</h3></div><button class="text-button" data-view-target="activity">View all</button></div>
                         <div id="dashboard-activity" class="stack-list"></div>
                     </article>
@@ -103,7 +116,7 @@
                     <select id="filter-priority"><option value="all">All priorities</option><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
                     <select id="filter-category"><option value="all">All categories</option></select>
                     <select id="filter-special"><option value="all">All tasks</option><option value="blocked">Blocked</option><option value="due-soon">Due soon</option><option value="overdue">Overdue</option></select>
-                    <select id="sort-tasks"><option value="created-desc">Newest first</option><option value="created-asc">Oldest first</option><option value="due-asc">Due date</option><option value="priority-desc">Priority</option><option value="title-asc">Title A–Z</option></select>
+                    <select id="sort-tasks"><option value="created-desc">Newest first</option><option value="created-asc">Oldest first</option><option value="due-asc">Due: earliest first</option><option value="due-desc">Due: latest first</option><option value="priority-desc">Priority: highest first</option><option value="priority-asc">Priority: lowest first</option><option value="title-asc">Title A–Z</option><option value="title-desc">Title Z–A</option></select>
                 </div>
 
                 <div class="quick-filters">
@@ -113,17 +126,20 @@
                     <button class="chip" data-quick-filter="overdue">Overdue</button>
                 </div>
 
-                <div class="board">
-                    <div class="column" data-status="todo"><div class="column-heading"><span><i class="dot todo"></i>TO DO</span><b id="count-todo">0</b></div><div class="task-list" id="col-todo"></div></div>
-                    <div class="column" data-status="inprogress"><div class="column-heading"><span><i class="dot inprogress"></i>IN PROGRESS</span><b id="count-inprogress">0</b></div><div class="task-list" id="col-inprogress"></div></div>
-                    <div class="column" data-status="done"><div class="column-heading"><span><i class="dot done"></i>DONE</span><b id="count-done">0</b></div><div class="task-list" id="col-done"></div></div>
+                <div class="filter-summary"><span id="filter-results" role="status" aria-live="polite"></span><button class="text-button" id="clear-filters" type="button">Clear filters</button></div>
+                <p class="board-guidance">Your ideas, one step closer. <span>Move tasks as your work progresses.</span></p>
+                <div class="board" aria-label="Kanban task board">
+                    <section class="column" data-status="todo" aria-labelledby="todo-title"><div class="column-heading"><h2 id="todo-title"><i class="dot todo" aria-hidden="true"></i>To do</h2><b id="count-todo" aria-label="To do task count">0</b></div><p class="column-description">A home for your next steps.</p><div class="task-list" id="col-todo" aria-label="To do tasks"></div><div class="column-footnote">01 / Start with a small step</div></section>
+                    <section class="column" data-status="inprogress" aria-labelledby="progress-title"><div class="column-heading"><h2 id="progress-title"><i class="dot inprogress" aria-hidden="true"></i>In progress</h2><b id="count-inprogress" aria-label="In progress task count">0</b></div><p class="column-description">Give good ideas your attention.</p><div class="task-list" id="col-inprogress" aria-label="In progress tasks"></div><div class="column-footnote">02 / Find your rhythm</div></section>
+                    <section class="column" data-status="done" aria-labelledby="done-title"><div class="column-heading"><h2 id="done-title"><i class="dot done" aria-hidden="true"></i>Done</h2><b id="count-done" aria-label="Completed task count">0</b></div><p class="column-description">Every little win belongs here.</p><div class="task-list" id="col-done" aria-label="Completed tasks"></div><div class="column-footnote">03 / Celebrate the progress</div></section>
                 </div>
-                <div class="danger-zone"><button class="danger" id="reset-board-btn">Reset board</button></div>
+                <div class="danger-zone"><button class="danger" id="reset-board-btn" title="Reset up to 500 tasks; remove attachments first. The reset can be undone before another workspace change.">Reset board</button></div>
             </section>
 
             <section class="app-view" data-view="graph">
                 <div class="graph-legend"><span>Dependency arrow means: prerequisite → dependent task</span><span class="legend-lock">🔒 Blocked</span><span class="legend-ready">● Ready</span></div>
                 <div id="dependency-graph" class="dependency-graph"></div>
+                <p id="graph-summary" role="status"></p>
             </section>
 
             <section class="app-view" data-view="activity">
@@ -140,10 +156,10 @@
                 <div class="form-group full"><label for="task-title">Title *</label><input type="text" id="task-title" required autocomplete="off" placeholder="e.g. Complete JavaScript assignment"></div>
                 <div class="form-group full"><label for="task-desc">Description</label><textarea id="task-desc" rows="3" placeholder="What needs to be done?"></textarea></div>
                 <div class="form-grid">
-                    <div class="form-group"><label for="task-priority">Priority</label><select id="task-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
-                    <div class="form-group"><label for="task-category">Category</label><input type="text" id="task-category" value="General" placeholder="College, Personal…"></div>
+                    <div class="form-group"><label for="task-priority">Priority</label><select id="task-priority" aria-describedby="priority-help"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select><small id="priority-help" class="task-field-help"></small></div>
+                    <div class="form-group"><label for="task-category">Category</label><input type="text" id="task-category" value="General" placeholder="College, Personal…" list="category-suggestions" maxlength="60"><datalist id="category-suggestions"></datalist></div>
                     <div class="form-group"><label for="task-due-date">Due date</label><input type="date" id="task-due-date"></div>
-                    <div class="form-group"><label for="task-tags">Tags</label><input type="text" id="task-tags" placeholder="JavaScript, Assignment"></div>
+                    <div class="form-group"><label for="task-tags">Tags</label><input type="text" id="task-tags" placeholder="JavaScript, Assignment" aria-describedby="tags-help"><small id="tags-help" class="task-field-help">Separate with commas. Up to 6 tags, 30 characters each.</small><div id="tag-preview" class="tags-row" aria-label="Tag preview"></div></div>
                 </div>
                 <div class="form-group full"><label>Dependencies</label><p class="field-help">Selected tasks must be completed before this one can move forward.</p><div id="dependency-list" class="dependency-picker"></div></div>
                 <div id="modal-error" class="error-msg hidden"></div>
@@ -153,14 +169,27 @@
     </div>
 
     <div id="import-modal" class="modal hidden">
-        <div class="modal-content import-modal-content">
-            <div class="modal-header"><div><span class="eyebrow">COLLEGE TASK LIBRARY</span><h2>Import college tasks</h2><p>Choose useful student tasks such as assignments, exams, labs, coding practice and project work.</p></div></div>
-            <div id="api-status" class="api-status"></div>
+        <div class="modal-content import-modal-content" role="dialog" aria-modal="true" aria-labelledby="library-title">
+            <div class="modal-header"><div><span class="eyebrow">COLLEGE TASK LIBRARY</span><h2 id="library-title">Import college tasks</h2><p>Choose useful student tasks such as assignments, exams, labs, coding practice and project work.</p></div></div>
+            <div id="api-status" class="api-status" role="status"></div>
+            <div class="library-tools"><label for="library-search">Find a template</label><input id="library-search" type="search" placeholder="Search title, course or category"><button class="secondary" id="library-select-visible" type="button">Select visible</button><button class="secondary" id="library-clear" type="button">Clear selection</button></div>
+            <p id="library-selection" role="status">0 tasks selected</p>
             <div id="api-task-list" class="api-task-list"></div>
             <div class="modal-actions"><button class="secondary" id="import-cancel">Cancel</button><button class="primary" id="import-confirm" disabled>Import selected</button></div>
         </div>
     </div>
 
+    <dialog id="migration-dialog" class="attachment-dialog" aria-labelledby="migration-title">
+        <div class="modal-header"><h2 id="migration-title">Bring your earlier work along</h2><button type="button" class="secondary" id="migration-close">Close</button></div>
+        <p>Review your old tasks before importing them into this account. Their statuses, due dates and prerequisite links are preserved. Existing tasks stay unchanged; old activity and attachments are not imported.</p>
+        <div class="attachment-upload">
+            <label for="migration-source">Saved data at this browser address</label><select id="migration-source"></select>
+            <label for="migration-file">Or choose a browser-backup JSON file</label><input id="migration-file" type="file" accept=".json,application/json">
+        </div>
+        <p id="migration-status" role="status"></p><ul id="migration-preview" class="migration-preview"></ul>
+        <p class="field-help">Up to 100 tasks and 100 KB per import. New database creation dates are assigned. Your original browser data is kept.</p>
+        <div class="attachment-pagination"><button type="button" class="secondary" id="migration-backup" disabled>Download backup</button><button type="button" class="primary" id="migration-save" disabled>Import reviewed tasks</button></div>
+    </dialog>
     <div id="toast-container"></div>
 <script type="module" src="js/app.js?v=5"></script></body>
 </html>

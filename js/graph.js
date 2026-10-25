@@ -12,31 +12,32 @@ export function wouldCreateCycle(tasks, taskId, dependencyId) {
         return [taskId, taskId]; // Trivial cycle
     }
 
-    const visited = new Set();
-    
-    // We want to see if we can reach `taskId` starting from `dependencyId`.
-    function dfs(currentId, path) {
+    const visited = new Set([dependencyId]);
+    const parent = new Map();
+    const stack = [dependencyId];
+    // Explicit DFS stack avoids recursion limits on long project chains.
+    while (stack.length) {
+        const currentId = stack.pop();
         if (currentId === taskId) {
-            return path;
-        }
-        
-        visited.add(currentId);
-        
-        const currentTask = tasks[currentId];
-        if (currentTask && currentTask.dependsOn) {
-            for (const nextId of currentTask.dependsOn) {
-                if (!visited.has(nextId)) {
-                    const cyclePath = dfs(nextId, [...path, nextId]);
-                    if (cyclePath) {
-                        return cyclePath;
-                    }
-                }
+            const path = [];
+            let cursor = currentId;
+            while (cursor !== undefined) {
+                path.push(cursor);
+                cursor = parent.get(cursor);
             }
+            return path.reverse();
         }
-        return null;
+        const current = Object.hasOwn(tasks, currentId) ? tasks[currentId] : null;
+        const dependencies = Array.isArray(current?.dependsOn) ? current.dependsOn : [];
+        for (let i = dependencies.length - 1; i >= 0; i--) {
+            const nextId = dependencies[i];
+            if (typeof nextId !== 'string' || visited.has(nextId)) continue;
+            visited.add(nextId);
+            parent.set(nextId, currentId);
+            stack.push(nextId);
+        }
     }
-
-    return dfs(dependencyId, [dependencyId]);
+    return null;
 }
 
 /**

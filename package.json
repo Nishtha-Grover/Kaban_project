@@ -1,0 +1,35 @@
+{
+  "name": "flowforge",
+  "version": "2.0.0-dev",
+  "private": true,
+  "description": "College task and dependency manager — Evaluation 2",
+  "type": "module",
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "scripts": {
+    "test:api:auth": "node --test scripts/api-auth-crud.test.js",
+    "test:api:files": "node --test scripts/api-dependencies-uploads.test.js",
+    "test:frontend": "node --experimental-vm-modules --test scripts/frontend-integration.test.js",
+    "test:frontend:auth": "node --experimental-vm-modules --test scripts/auth-frontend.test.js",
+    "test:frontend:board": "node --experimental-vm-modules --test scripts/board-integration.test.js",
+    "check": "node scripts/check-syntax.js",
+    "config:check": "node --env-file-if-exists=.env scripts/check-config.js",
+    "preview": "python3 -m http.server 4173 --bind 127.0.0.1",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --watch --env-file-if-exists=.env server/index.js",
+    "build": "node scripts/build-site.js",
+    "test:hosting": "node --test scripts/hosting.test.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.24.6",
+    "multer": "^2.5.0",
+    "serverless-http": "^4.0.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}

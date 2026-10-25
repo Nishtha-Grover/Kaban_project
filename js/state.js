@@ -1,229 +1,99 @@
 import { computeLockStates } from './graph.js';
-import { getSessionUsername } from './auth.js';
+import { getWorkspaceIdentity } from './auth.js';
+import { buildDependencyIndex } from './dependencyModel.js';
+import { loadDatabaseTasks, createDatabaseTask, updateDatabaseTask, deleteDatabaseTask } from './taskApi.js';
+import { requestJson } from './httpClient.js';
 
-function getStorageKey() {
-    const session = getSessionUsername();
-    return session ? `flowforge-board-${session}` : 'flowforge-board-anonymous';
+let state = { tasks: Object.create(null), activities: [] };
+let locks = {}, index = buildDependencyIndex({}), owner = null;
+let ready = false, busy = false;
+let history = { revision: 0, canUndo: false, label: '' };
+const subscribers = new Set();
+export function subscribe(callback) { subscribers.add(callback); return () => subscribers.delete(callback); }
+function notify() { for (const callback of subscribers) callback(); }
+function assertOwner() {
+    if (!owner || owner !== getWorkspaceIdentity()) throw new Error('Your session changed. Reload before editing.');
 }
-
-function getLegacyStorageKey() {
-    const session = getSessionUsername();
-    return session ? `kanban-board-${session}` : 'kanban-board-anonymous';
-}
-
-let state = {
-    tasks: {},
-    activities: []
-};
-
-let lockStates = {};
-let subscribers = [];
-let undoStack = [];
-
-function normalizeState(raw) {
-    const safe = raw && typeof raw === 'object' ? raw : {};
-    const tasks = safe.tasks && typeof safe.tasks === 'object' ? safe.tasks : {};
-
-    Object.values(tasks).forEach(task => {
-        task.priority = task.priority || 'medium';
-        task.category = task.category || 'General';
-        task.dueDate = task.dueDate || '';
-        task.tags = Array.isArray(task.tags) ? task.tags : [];
-        task.dependsOn = Array.isArray(task.dependsOn) ? task.dependsOn : [];
-        task.status = task.status || 'todo';
-    });
-
-    return {
-        tasks,
-        activities: Array.isArray(safe.activities) ? safe.activities : []
+async function readBoard(attempt = 0) {
+    const before = await requestJson('/api/tasks/history', { label: 'Load board revision' });
+    const [tasks, activity] = await Promise.all([
+        loadDatabaseTasks(),
+        requestJson('/api/studio/collections/activities?limit=50', { label: 'Load activity' })
+    ]);
+    const after = await requestJson('/api/tasks/history', { label: 'Load board history' });
+    if (before.revision !== after.revision) {
+        if (attempt < 2) return readBoard(attempt + 1);
+        throw new Error('The board is changing in another tab. Wait a moment and reload.');
+    }
+    assertOwner();
+    history = after;
+    state = {
+        tasks: Object.fromEntries(tasks.map(task => [task.id, task])),
+        activities: activity.documents.map(item => ({ id: item._id, type: item.action,
+            message: item.message, taskId: item.task, createdAt: item.createdAt }))
     };
+    locks = computeLockStates(state.tasks);
+    index = buildDependencyIndex(state.tasks);
 }
-
-function cloneState() {
-    return JSON.parse(JSON.stringify(state));
+export async function loadState() {
+    if (busy) throw new Error('Wait for the current save to finish.');
+    busy = true; ready = false;
+    history = { revision: 0, canUndo: false, label: '' };
+    owner = getWorkspaceIdentity();
+    state = { tasks: Object.create(null), activities: [] };
+    locks = {}; index = buildDependencyIndex({});
+    try { assertOwner(); await readBoard(); ready = true; }
+    finally { busy = false; notify(); }
 }
-
-function rememberForUndo() {
-    undoStack.push(cloneState());
-    if (undoStack.length > 20) undoStack.shift();
-}
-
-function addActivity(type, message, taskId = null) {
-    state.activities.unshift({
-        id: 'activity-' + Math.random().toString(36).slice(2, 10),
-        type,
-        message,
-        taskId,
-        createdAt: new Date().toISOString()
-    });
-    state.activities = state.activities.slice(0, 60);
-}
-
-export function subscribe(callback) {
-    subscribers.push(callback);
-}
-
-function notify() {
-    subscribers.forEach(callback => callback());
-}
-
-export function loadState() {
+async function mutate(action) {
+    assertOwner();
+    if (!ready) throw new Error('Reload the board before editing. A previous request may have saved on the server.');
+    if (busy) throw new Error('A task is being saved. Wait a moment before changing another task.');
+    busy = true;
     try {
-        let saved = localStorage.getItem(getStorageKey());
-
-        // One-time migration from the original Kanban project so existing tasks
-        // are not lost after upgrading to FlowForge.
-        if (!saved) {
-            const legacy = localStorage.getItem(getLegacyStorageKey());
-            if (legacy) {
-                const migrated = normalizeState(JSON.parse(legacy));
-                localStorage.setItem(getStorageKey(), JSON.stringify(migrated));
-                saved = JSON.stringify(migrated);
-            }
-        }
-
-        state = saved ? normalizeState(JSON.parse(saved)) : { tasks: {}, activities: [] };
+        const result = await action();
+        assertOwner();
+        await readBoard();
+        notify();
+        return result;
     } catch (error) {
-        console.warn('Failed to load saved state.', error);
-        state = { tasks: {}, activities: [] };
-    }
-    recomputeLocks();
+        // Do not retry writes: a lost response may follow a successful commit.
+        ready = false;
+        error.message += ' Reload the board to check its latest saved state before trying again.';
+        throw error;
+    } finally { busy = false; }
 }
-
-function saveState() {
-    localStorage.setItem(getStorageKey(), JSON.stringify(state));
-    recomputeLocks();
-    notify();
-}
-
-function recomputeLocks() {
-    lockStates = computeLockStates(state.tasks);
-}
-
-export function getTasks() {
-    return state.tasks;
-}
-
-export function getTask(id) {
-    return state.tasks[id];
-}
-
-export function getActivities() {
-    return state.activities;
-}
-
-export function getLockState(id) {
-    return lockStates[id] || { locked: false, blockingDeps: [] };
-}
-
-export function generateId() {
-    return 'task-' + Math.random().toString(36).slice(2, 11);
-}
-
-export function addTask(taskData) {
-    rememberForUndo();
-    const id = generateId();
-    const task = {
-        id,
-        title: taskData.title,
-        description: taskData.description || '',
-        status: 'todo',
-        priority: taskData.priority || 'medium',
-        category: taskData.category || 'General',
-        dueDate: taskData.dueDate || '',
-        tags: Array.isArray(taskData.tags) ? taskData.tags : [],
-        dependsOn: Array.isArray(taskData.dependsOn) ? taskData.dependsOn : [],
-        createdAt: new Date().toISOString()
-    };
-    state.tasks[id] = task;
-    addActivity('create', `Created “${task.title}”`, id);
-    saveState();
-    return id;
-}
-
-export function updateTask(id, taskData) {
+function taskAt(id) {
     const task = state.tasks[id];
-    if (!task) return;
-    rememberForUndo();
-    Object.assign(task, {
-        title: taskData.title,
-        description: taskData.description || '',
-        priority: taskData.priority || 'medium',
-        category: taskData.category || 'General',
-        dueDate: taskData.dueDate || '',
-        tags: Array.isArray(taskData.tags) ? taskData.tags : [],
-        dependsOn: Array.isArray(taskData.dependsOn) ? taskData.dependsOn : []
+    if (!task) throw new Error('This task is unavailable. Reload the board.');
+    return task;
+}
+export function getTasks() { return state.tasks; }
+export function getTask(id) { return state.tasks[id]; }
+export function getActivities() { return state.activities; }
+export function getLockState(id) { return locks[id] || { locked: false, blockingDeps: [] }; }
+export function getTaskDependencies(id) {
+    return { prerequisites: [...(index.prerequisites.get(id) || [])],
+        dependents: [...(index.dependents.get(id) || [])], missing: [...(index.missing.get(id) || [])] };
+}
+export async function addTask(data) { return mutate(async () => (await createDatabaseTask(data)).id); }
+export async function updateTask(id, data) { return mutate(() => updateDatabaseTask(taskAt(id), data)); }
+export async function updateTaskStatus(id, status) { return updateTask(id, { status }); }
+export async function deleteTask(id) { return mutate(() => deleteDatabaseTask(taskAt(id))); }
+export async function importTasks(items) {
+    return mutate(async () => {
+        const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags'];
+        const tasks = items.map(item => ({ ...Object.fromEntries(fields.filter(key => item[key] !== undefined).map(key => [key, item[key]])), dependsOn: [] }));
+        return (await requestJson('/api/tasks/import-library', { method: 'POST', json: { tasks }, label: 'Import library', timeoutMs: 30000 })).imported;
     });
-    addActivity('edit', `Updated “${task.title}”`, id);
-    saveState();
 }
-
-export function updateTaskStatus(id, newStatus) {
-    const task = state.tasks[id];
-    if (!task || task.status === newStatus) return;
-    rememberForUndo();
-    const oldStatus = task.status;
-    task.status = newStatus;
-    const names = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' };
-    addActivity('move', `Moved “${task.title}” from ${names[oldStatus]} to ${names[newStatus]}`, id);
-    saveState();
+export async function resetBoard() {
+    return mutate(() => requestJson('/api/tasks/reset', { method: 'POST', json: { revision: history.revision }, label: 'Reset board', timeoutMs: 30000 }));
 }
-
-export function deleteTask(id) {
-    const task = state.tasks[id];
-    if (!task) return;
-    rememberForUndo();
-    delete state.tasks[id];
-
-    for (const taskId in state.tasks) {
-        const other = state.tasks[taskId];
-        other.dependsOn = (other.dependsOn || []).filter(depId => depId !== id);
-    }
-
-    addActivity('delete', `Deleted “${task.title}”`);
-    saveState();
-}
-
-export function importTasks(items) {
-    if (!Array.isArray(items) || items.length === 0) return 0;
-    rememberForUndo();
-    let count = 0;
-
-    items.forEach(item => {
-        const id = generateId();
-        state.tasks[id] = {
-            id,
-            title: item.title,
-            description: item.description || 'Imported from College Task Library',
-            status: item.status || 'todo',
-            priority: item.priority || 'medium',
-            category: item.category || 'College',
-            dueDate: item.dueDate || '',
-            tags: Array.isArray(item.tags) ? item.tags : ['College'],
-            dependsOn: [],
-            createdAt: new Date().toISOString()
-        };
-        count += 1;
-    });
-
-    addActivity('import', `Imported ${count} college task${count === 1 ? '' : 's'} from College Task Library`);
-    saveState();
-    return count;
-}
-
-export function resetBoard() {
-    rememberForUndo();
-    state = { tasks: {}, activities: [] };
-    saveState();
-}
-
-export function undoLastAction() {
-    if (undoStack.length === 0) return false;
-    state = normalizeState(undoStack.pop());
-    saveState();
+export async function undoLastAction() {
+    if (!canUndo()) return false;
+    await mutate(() => requestJson('/api/tasks/undo', { method: 'POST', json: { revision: history.revision }, label: 'Undo action', timeoutMs: 30000 }));
     return true;
 }
-
-export function canUndo() {
-    return undoStack.length > 0;
-}
+export function canUndo() { return ready && history.canUndo; }
+export function getUndoInfo() { return { count: canUndo() ? 1 : 0, label: history.label || 'Nothing to undo' }; }

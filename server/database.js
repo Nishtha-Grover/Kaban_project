@@ -1,0 +1,27 @@
+import mongoose from 'mongoose';
+import { User } from './models/User.js';
+import { Task } from './models/Task.js';
+import { Activity } from './models/Activity.js';
+import { Attachment } from './models/Attachment.js';
+import { AttachmentBlob } from './models/AttachmentBlob.js';
+
+let ready = false;
+export function databaseReady() {
+    return ready && mongoose.connection.readyState === 1;
+}
+export async function connectDatabase(uri) {
+    if (!uri) return false;
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, bufferCommands: false });
+    // Ensure duplicate usernames cannot race during registration.
+    await User.createIndexes();
+    await Task.createIndexes();
+    await Activity.createIndexes();
+    await Attachment.createIndexes();
+    await AttachmentBlob.createIndexes();
+    ready = true;
+    return true;
+}
+export async function disconnectDatabase() {
+    ready = false;
+    await mongoose.disconnect();
+}

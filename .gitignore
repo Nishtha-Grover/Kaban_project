@@ -3,3 +3,16 @@ take_screenshots.sh
 take_screenshots.py
 generate_team_history.sh
 .DS_Store
+
+# Local runtime, credentials and generated backend files
+node_modules/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+coverage/
+uploads/
+logs/
+
+dist/
+.netlify/

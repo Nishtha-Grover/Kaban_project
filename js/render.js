@@ -1,5 +1,9 @@
-import { getTasks, getLockState, deleteTask } from './state.js';
-import { setupDragAndDrop } from './dragdrop.js';
+import { getTasks, getLockState, deleteTask, getTaskDependencies } from './state.js';
+import { setupDragAndDrop, moveTask } from './dragdrop.js';
+import { showToast } from './toast.js';
+import { isOverdue, isDueSoon, deadlineLabel } from './deadlines.js';
+import { sortTasks } from './taskSort.js';
+import { openAttachments } from './taskAttachments.js';
 
 let filters = {
     search: '',
@@ -29,6 +33,10 @@ export function renderBoard() {
     Object.values(cols).forEach(col => { if (col) col.innerHTML = ''; });
 
     const visibleTasks = applyFilters(Object.values(tasks));
+    const resultCount = document.getElementById('filter-results');
+    if (resultCount) resultCount.textContent = `Showing ${visibleTasks.length} of ${Object.keys(tasks).length} tasks`;
+    const clearButton = document.getElementById('clear-filters');
+    if (clearButton) clearButton.disabled = !filters.search.trim() && filters.priority === 'all' && filters.category === 'all' && filters.special === 'all';
     const counts = { todo: 0, inprogress: 0, done: 0 };
 
     visibleTasks.forEach(task => {
@@ -42,7 +50,12 @@ export function renderBoard() {
         const countEl = document.getElementById(`count-${status}`);
         if (countEl) countEl.textContent = counts[status];
         if (cols[status] && counts[status] === 0) {
-            cols[status].innerHTML = `<div class="empty-msg">No matching tasks</div>`;
+            const empty = document.createElement('div');
+            empty.className = 'empty-msg';
+            const hasTasks = Object.values(tasks).some(task => task.status === status);
+            const messages = { todo: 'A fresh start. Add your first task.', inprogress: 'Your next focus session starts here.', done: 'Your finished work will appear here.' };
+            empty.textContent = hasTasks ? 'No matches. Try adjusting your filters.' : messages[status];
+            cols[status].appendChild(empty);
         }
     });
 }
@@ -69,21 +82,14 @@ function applyFilters(tasks) {
         return true;
     });
 
-    return filtered.sort((a, b) => {
-        switch (filters.sort) {
-            case 'due-asc': return compareDates(a.dueDate, b.dueDate);
-            case 'priority-desc': return priorityRank(b.priority) - priorityRank(a.priority);
-            case 'title-asc': return a.title.localeCompare(b.title);
-            case 'created-asc': return new Date(a.createdAt) - new Date(b.createdAt);
-            default: return new Date(b.createdAt) - new Date(a.createdAt);
-        }
-    });
+    return sortTasks(filtered, filters.sort);
 }
 
 function createTaskElement(task, allTasks, lockState) {
     const el = document.createElement('article');
     el.className = 'task-card';
     el.dataset.id = task.id;
+    el.dataset.priority = task.priority || 'medium';
     el.draggable = true;
 
     const visuallyLocked = task.status === 'todo' && lockState.locked;
@@ -92,10 +98,14 @@ function createTaskElement(task, allTasks, lockState) {
 
     const top = document.createElement('div');
     top.className = 'card-topline';
-    top.innerHTML = `
-        <span class="category-pill">${escapeHtml(task.category || 'General')}</span>
-        <span class="priority-pill priority-${escapeHtml(task.priority || 'medium')}">${priorityLabel(task.priority)}</span>
-    `;
+    const category = document.createElement('span');
+    category.className = 'category-pill';
+    category.textContent = task.category || 'General';
+    const priority = document.createElement('span');
+    const priorityValue = ['low', 'medium', 'high', 'urgent'].includes(task.priority) ? task.priority : 'medium';
+    priority.className = `priority-pill priority-${priorityValue}`;
+    priority.textContent = priorityLabel(priorityValue);
+    top.append(category, priority);
 
     const header = document.createElement('div');
     header.className = 'task-header';
@@ -108,10 +118,30 @@ function createTaskElement(task, allTasks, lockState) {
     actions.className = 'task-actions';
 
     const editBtn = makeActionButton('Edit', () => window.openTaskModal(task.id));
-    const deleteBtn = makeActionButton('Delete', () => {
-        if (confirm(`Delete “${task.title}”?`)) deleteTask(task.id);
+    const deleteBtn = makeActionButton('Delete', async () => {
+        const current = getTasks();
+        if (!current[task.id]) {
+            showToast('This task no longer exists.');
+            renderBoard();
+            return;
+        }
+        const dependents = getTaskDependencies(task.id).dependents.map(id => current[id]).filter(Boolean);
+        if (dependents.length) {
+            showToast('Remove prerequisite links from dependent tasks before deleting this task.', 8000);
+            return;
+        }
+        if (confirm(`Delete “${current[task.id].title}” from the database? Undo is available for boards up to 500 tasks until the next workspace change.`)) {
+            deleteBtn.disabled = true;
+            try { await deleteTask(task.id); showToast('Task deleted from database'); }
+            catch (error) { showToast(error.message, 12000); }
+            finally { deleteBtn.disabled = false; }
+        }
     });
-    actions.append(editBtn, deleteBtn);
+    const filesBtn = makeActionButton('Files', () => openAttachments(task));
+    filesBtn.setAttribute('aria-label', `Files for ${task.title}`);
+    actions.append(editBtn, filesBtn, deleteBtn);
+    editBtn.setAttribute('aria-label', `Edit ${task.title}`);
+    deleteBtn.setAttribute('aria-label', `Delete ${task.title}`);
     header.append(title, actions);
 
     el.append(top, header);
@@ -139,10 +169,11 @@ function createTaskElement(task, allTasks, lockState) {
     meta.className = 'task-meta';
 
     if (task.dueDate) {
-        const due = document.createElement('span');
+        const due = document.createElement('time');
+        due.dateTime = task.dueDate;
         const overdue = isOverdue(task, new Date());
         due.className = overdue ? 'meta-item overdue' : 'meta-item';
-        due.textContent = `${overdue ? '⚠' : '◷'} ${formatDate(task.dueDate)}`;
+        due.textContent = deadlineLabel(task);
         meta.appendChild(due);
     }
 
@@ -154,6 +185,12 @@ function createTaskElement(task, allTasks, lockState) {
     }
 
     if (meta.children.length) el.appendChild(meta);
+    if (task.status === 'done') {
+        const completed = document.createElement('span');
+        completed.className = 'card-completed-label';
+        completed.textContent = '✓ Completed';
+        el.appendChild(completed);
+    }
 
     if (task.dependsOn?.length) {
         const depsContainer = document.createElement('div');
@@ -176,6 +213,26 @@ function createTaskElement(task, allTasks, lockState) {
         el.appendChild(depsContainer);
     }
 
+    const moveLabel = document.createElement('label');
+    moveLabel.className = 'task-move-label';
+    moveLabel.append('Move to');
+    const move = document.createElement('select');
+    move.className = 'task-move';
+    move.setAttribute('aria-label', `Move ${task.title} to a column`);
+    Object.entries({ todo: 'To do', inprogress: 'In progress', done: 'Done' }).forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        option.selected = value === task.status;
+        move.appendChild(option);
+    });
+    move.addEventListener('change', async () => {
+        move.disabled = true;
+        if (!await moveTask(task.id, move.value)) move.value = task.status;
+        move.disabled = false;
+    });
+    moveLabel.appendChild(move);
+    el.appendChild(moveLabel);
     setupDragAndDrop(el);
     return el;
 }
@@ -204,36 +261,8 @@ export function populateCategoryFilter() {
     select.value = categories.includes(current) ? current : 'all';
 }
 
-function isOverdue(task, now) {
-    if (!task.dueDate || task.status === 'done') return false;
-    const due = new Date(`${task.dueDate}T23:59:59`);
-    return due < now;
-}
-
-function isDueSoon(task, now) {
-    if (!task.dueDate || task.status === 'done') return false;
-    const due = new Date(`${task.dueDate}T23:59:59`);
-    const diff = due - now;
-    return diff >= 0 && diff <= 3 * 24 * 60 * 60 * 1000;
-}
-
-function compareDates(a, b) {
-    if (!a && !b) return 0;
-    if (!a) return 1;
-    if (!b) return -1;
-    return new Date(a) - new Date(b);
-}
-
-function priorityRank(priority) {
-    return { low: 1, medium: 2, high: 3, urgent: 4 }[priority] || 0;
-}
-
 function priorityLabel(priority) {
     return { low: 'Low', medium: 'Medium', high: 'High', urgent: 'Urgent' }[priority] || 'Medium';
-}
-
-function formatDate(date) {
-    return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(`${date}T00:00:00`));
 }
 
 function escapeHtml(value) {

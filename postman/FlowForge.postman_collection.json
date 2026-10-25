@@ -1,0 +1,880 @@
+{
+  "info": {
+    "name": "FlowForge — Evaluation 2 API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Use a disposable database. Register creates a fresh test account. Cookies provide authentication. Run folders 01–03 then 05. Folder 04 uploads is manual: select the provided sample file. See docs/postman.md. Requests do create/update/delete test data; no production runs."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Authentication",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"MongoDB connected\", () => pm.expect(pm.response.json().database).to.eql(\"connected\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 Register disposable account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{username}}\",\"password\":\"{{password}}\",\"displayName\":\"Postman Test\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = pm.variables.replaceIn(\"{{$guid}}\").replace(/-/g, \"\").slice(0, 16);",
+                  "pm.collectionVariables.set(\"username\", \"test_\" + suffix);",
+                  "pm.collectionVariables.set(\"password\", pm.variables.replaceIn(\"{{$guid}}\") + \"Aa1!\");",
+                  "[\"parentId\",\"parentVersion\",\"childId\",\"childVersion\",\"uploadTaskId\",\"uploadTaskVersion\",\"attachmentId\"].forEach(k => pm.collectionVariables.unset(k));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"No password hash returned\", () => pm.expect(pm.response.text()).not.to.include(\"passwordHash\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"{{username}}\",\"password\":\"{{password}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Current account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Correct account\", () => pm.expect(pm.response.json().user.username).to.eql(pm.collectionVariables.get(\"username\")));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Tasks and dependency rules",
+      "item": [
+        {
+          "name": "01 Create prerequisite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman prerequisite\",\n  \"priority\": \"high\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const t = pm.response.json().task; pm.collectionVariables.set(\"parentId\", t.id); pm.collectionVariables.set(\"parentVersion\", t.version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Create dependent task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Postman dependent\",\"dependsOn\":[\"{{parentId}}\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const t = pm.response.json().task; pm.collectionVariables.set(\"childId\", t.id); pm.collectionVariables.set(\"childVersion\", t.version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 List tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tasks?page=1&limit=10",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Reject dependency cycle",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{parentId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{parentVersion}},\"dependsOn\":[\"{{childId}}\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 Reject blocked movement",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{childId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{childVersion}},\"status\":\"inprogress\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 Complete prerequisite",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{parentId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{parentVersion}},\"status\":\"done\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const t = pm.response.json().task; pm.collectionVariables.set(\"parentId\", t.id); pm.collectionVariables.set(\"parentVersion\", t.version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 Start dependent task",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{childId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{childVersion}},\"status\":\"inprogress\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const t = pm.response.json().task; pm.collectionVariables.set(\"childId\", t.id); pm.collectionVariables.set(\"childVersion\", t.version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 Reject unsafe reopening",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{parentId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{parentVersion}},\"status\":\"todo\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 Reject invalid priority",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Invalid task\",\n  \"priority\": \"invalid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 Delete dependent test task",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{childId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{childVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 Delete prerequisite test task",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{parentId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{parentVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Database Studio",
+      "item": [
+        {
+          "name": "01 Seed demo project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/studio/seed",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Four tasks added\", () => pm.expect(pm.response.json().created).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Seed again without duplicates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/studio/seed",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"No duplicates\", () => pm.expect(pm.response.json().alreadySeeded).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Browse task documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/studio/collections/tasks?page=1&limit=10",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Populate task relationships",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/studio/collections/tasks?expand=relationships",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Expanded\", () => pm.expect(pm.response.json().expanded).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 Reject arbitrary collection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/studio/collections/secrets",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 Aggregation and indexes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/studio/insights",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Four demo tasks\", () => pm.expect(pm.response.json().total).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 Export JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/studio/export",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Export format\", () => pm.expect(pm.response.json().format).to.eql(\"flowforge-workspace\"));",
+                  "pm.test(\"No file bytes\", () => pm.expect(pm.response.json().includesFileBytes).to.eql(false));",
+                  "pm.test(\"No password hash\", () => pm.expect(pm.response.text()).not.to.include(\"passwordHash\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Optional uploads — MANUAL file selection",
+      "item": [
+        {
+          "name": "01 Create upload test task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman upload test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const t = pm.response.json().task; pm.collectionVariables.set(\"uploadTaskId\", t.id); pm.collectionVariables.set(\"uploadTaskVersion\", t.version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Upload sample TXT — select file first",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/tasks/{{uploadTaskId}}/attachments",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": null,
+                  "description": "Choose postman/fixtures/notes.txt in Postman before sending."
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"attachmentId\", pm.response.json().attachment.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Download attachment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/tasks/{{uploadTaskId}}/attachments/{{attachmentId}}/download",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Download attachment\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(\"attachment\"));",
+                  "pm.test(\"No sniffing\", () => pm.expect(pm.response.headers.get(\"X-Content-Type-Options\")).to.eql(\"nosniff\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Reject deletion with attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/tasks/{{uploadTaskId}}",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"version\":{{uploadTaskVersion}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 End session",
+      "item": [
+        {
+          "name": "01 Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/logout",
+            "description": "Run in the documented order against a disposable test database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Reject unauthenticated access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/studio/collections/tasks",
+            "description": "Run in the documented order against a disposable test database."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

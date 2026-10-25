@@ -1,6 +1,7 @@
 import { addTask, updateTask, getTask, getTasks } from './state.js';
 import { wouldCreateCycle } from './graph.js';
 import { showToast } from './toast.js';
+import { parseTags, priorityGuidance } from './taskLabels.js';
 
 const modal = document.getElementById('task-modal');
 const form = document.getElementById('task-form');
@@ -15,8 +16,40 @@ const depList = document.getElementById('dependency-list');
 const errorMsg = document.getElementById('modal-error');
 const modalTitle = document.getElementById('modal-title');
 const cancelBtn = document.getElementById('modal-cancel');
+let returnFocus = null;
+let saving = false;
+const shell = document.querySelector('.app-shell');
 
 export function initTaskForm() {
+    priorityInput.addEventListener('change', updateLabelPreview);
+    tagsInput.addEventListener('input', updateLabelPreview);
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'modal-title');
+    errorMsg.setAttribute('role', 'alert');
+    titleInput.maxLength = 160;
+    descInput.maxLength = 3000;
+    const heading = modal.querySelector('.modal-header');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'modal-close-button';
+    close.textContent = '×';
+    close.setAttribute('aria-label', 'Close task form');
+    close.addEventListener('click', closeTaskModal);
+    heading.appendChild(close);
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeTaskModal();
+        }
+        if (event.key === 'Tab') {
+            const controls = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), a[href]')].filter(element => element.getClientRects().length);
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    });
     cancelBtn.addEventListener('click', closeTaskModal);
     modal.addEventListener('click', event => {
         if (event.target === modal) closeTaskModal();
@@ -26,12 +59,24 @@ export function initTaskForm() {
 }
 
 function openTaskModal(taskId = null) {
+    returnFocus = document.activeElement;
     errorMsg.classList.add('hidden');
     form.reset();
     depList.innerHTML = '';
 
     const tasks = getTasks();
+    const suggestions = document.getElementById('category-suggestions');
+    suggestions.replaceChildren();
+    [...new Set(['General', 'College', 'Personal', 'Project', ...Object.values(tasks).map(task => task.category)])].sort().forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        suggestions.appendChild(option);
+    });
     const task = taskId ? getTask(taskId) : null;
+    if (taskId && !task) {
+        showToast('This task no longer exists.');
+        return;
+    }
 
     modalTitle.textContent = task ? 'Edit Task' : 'Create Task';
     idInput.value = task ? task.id : '';
@@ -75,23 +120,38 @@ function openTaskModal(taskId = null) {
         depList.innerHTML = '<span class="picker-empty">No other tasks available yet.</span>';
     }
 
+    updateLabelPreview();
     modal.classList.remove('hidden');
+    shell.inert = true;
+    document.body.classList.add('task-dialog-open');
+    modal.querySelector('[type="submit"]').textContent = task ? 'Save changes ↗' : 'Create task ↗';
     titleInput.focus();
 }
 
 function closeTaskModal() {
+    if (saving) return;
     modal.classList.add('hidden');
+    shell.inert = false;
+    document.body.classList.remove('task-dialog-open');
+    const target = returnFocus?.isConnected ? returnFocus : document.getElementById('add-task-btn');
+    target?.focus();
 }
 
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     event.preventDefault();
+    if (saving) return;
 
     const taskId = idInput.value;
+    if (taskId && !getTask(taskId)) {
+        showError('This task was removed while the editor was open. Close the form and create a new task if needed.');
+        return;
+    }
     const title = titleInput.value.trim();
     const description = descInput.value.trim();
 
     if (!title) {
         showError('Title is required.');
+        titleInput.focus();
         return;
     }
 
@@ -110,27 +170,32 @@ function handleFormSubmit(event) {
         }
     }
 
+    const tags = parseTags(tagsInput.value);
+    if (tags.length > 6 || tags.some(tag => tag.length > 30)) {
+        showError('Use no more than 6 unique tags, with at most 30 characters each.');
+        tagsInput.focus();
+        return;
+    }
     const taskData = {
         title,
         description,
         priority: priorityInput.value,
         category: categoryInput.value.trim() || 'General',
         dueDate: dueDateInput.value,
-        tags: tagsInput.value
-            .split(',')
-            .map(tag => tag.trim())
-            .filter(Boolean)
-            .slice(0, 6),
+        tags,
         dependsOn: selectedDeps
     };
 
-    if (taskId) {
-        updateTask(taskId, taskData);
-        showToast('Task updated');
-    } else {
-        addTask(taskData);
-        showToast('Task created');
-    }
+    const save = modal.querySelector('[type="submit"]');
+    saving = true; save.disabled = true;
+    try {
+        if (taskId) await updateTask(taskId, taskData);
+        else await addTask(taskData);
+        showToast(taskId ? 'Task saved to database' : 'Task created in database');
+    } catch (error) {
+        showError(error.message);
+        return;
+    } finally { saving = false; save.disabled = false; }
 
     closeTaskModal();
 }
@@ -138,6 +203,18 @@ function handleFormSubmit(event) {
 function showError(message) {
     errorMsg.textContent = message;
     errorMsg.classList.remove('hidden');
+}
+
+function updateLabelPreview() {
+    document.getElementById('priority-help').textContent = priorityGuidance[priorityInput.value] || '';
+    const preview = document.getElementById('tag-preview');
+    preview.replaceChildren();
+    parseTags(tagsInput.value).slice(0, 6).forEach(tag => {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.textContent = `#${tag}`;
+        preview.appendChild(chip);
+    });
 }
 
 function escapeHtml(value) {

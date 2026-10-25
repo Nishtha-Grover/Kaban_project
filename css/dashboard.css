@@ -1,0 +1,39 @@
+[data-view="dashboard"] .welcome-panel { min-height: 195px; padding: 34px; border-radius: 16px; background: linear-gradient(115deg, #2f4934, #536b40); box-shadow: none; }
+[data-view="dashboard"] .welcome-panel h2 { font-size: clamp(23px, 2.6vw, 34px); max-width: 650px; line-height: 1.35; overflow-wrap: anywhere; font-weight: 500; }
+[data-view="dashboard"] .welcome-panel p { font-size: 13px; max-width: 480px; }
+[data-view="dashboard"] .welcome-panel::after { width: 330px; height: 330px; border: 1px solid #d6e7b54d; right: -80px; bottom: -160px; box-shadow: 0 0 0 35px #d6e7b50a, 0 0 0 70px #d6e7b507; }
+.dashboard-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 30px 0 15px; }
+.dashboard-section-heading h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.3px; }
+.dashboard-section-heading button { font-size: 11px; }
+[data-view="dashboard"] .metric-grid { margin-top: 0; margin-bottom: 26px; gap: 12px; }
+[data-view="dashboard"] .metric-card { position: relative; border-radius: 12px; padding: 21px 18px; box-shadow: none; overflow: hidden; }
+[data-view="dashboard"] .metric-card::before { content: ''; position: absolute; width: 24px; height: 3px; top: 0; left: 18px; background: var(--accent); }
+[data-view="dashboard"] .metric-card:nth-child(2)::before { background: #b4a37f; }
+[data-view="dashboard"] .metric-card:nth-child(3)::before { background: #a896ba; }
+[data-view="dashboard"] .metric-card:nth-child(5)::before { background: #c6a16e; }
+[data-view="dashboard"] .metric-card strong { font-size: 36px; font-weight: 500; margin: 14px 0 8px; font-variant-numeric: tabular-nums; }
+[data-view="dashboard"] .metric-card span { font-size: 11px; }
+[data-view="dashboard"] .metric-card small { font-size: 10px; }
+[data-view="dashboard"] .dashboard-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; }
+[data-view="dashboard"] .panel { border-radius: 12px; padding: 25px; box-shadow: none; min-width: 0; }
+[data-view="dashboard"] .panel .eyebrow { font-size: 8px; letter-spacing: 1.5px; }
+[data-view="dashboard"] .panel h3 { font-size: 18px; font-weight: 500; margin-top: 9px; letter-spacing: -.4px; }
+[data-view="dashboard"] .progress-panel { background: var(--surface-2); }
+[data-view="dashboard"] .progress-track { height: 12px; margin-top: 25px; background: var(--border); }
+[data-view="dashboard"] .progress-panel .text-button { padding: 8px 0; font-size: 11px; }
+[data-view="dashboard"] .weather-panel { background: color-mix(in srgb, #bca77b 8%, var(--surface)); }
+[data-view="dashboard"] #weather-temp { font-size: 30px; font-weight: 500; white-space: nowrap; }
+.deadlines-panel, .recent-panel { min-height: 250px; }
+.deadline-group-heading { margin: 14px 0 2px; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .5px; }
+.deadline-copy { min-width: 0; }
+.deadline-details { flex-shrink: 0; display: grid; gap: 5px; justify-items: end; max-width: 48%; }
+.deadline-details .text-button { font-size: 10px; padding: 5px 0; }
+.deadline-overflow { font-size: 10px; color: var(--muted); line-height: 1.7; }
+[data-view="dashboard"] .deadline-row, [data-view="dashboard"] .activity-row { padding: 15px 0; }
+[data-view="dashboard"] .deadline-row strong { font-size: 12px; overflow-wrap: anywhere; }
+[data-view="dashboard"] .deadline-row time { text-align: right; flex-shrink: 0; font-size: 10px; }
+[data-view="dashboard"] .activity-copy { min-width: 0; overflow-wrap: anywhere; }
+[data-view="dashboard"] .activity-icon { flex-shrink: 0; }
+[data-view="dashboard"] .empty-panel { display: grid; place-items: center; min-height: 135px; line-height: 1.8; font-size: 11px; background: var(--surface-2); }
+@media (max-width: 1100px) { [data-view="dashboard"] .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 720px) { [data-view="dashboard"] .dashboard-grid { grid-template-columns: 1fr; } [data-view="dashboard"] .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } [data-view="dashboard"] .welcome-panel { padding: 25px; } [data-view="dashboard"] .panel { padding: 20px; } .dashboard-section-heading { flex-wrap: wrap; } }

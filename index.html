@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlowForge | Smart Dependency Task Manager</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/landing.css">
 </head>
 <body class="landing-body">
     <nav class="landing-nav">
@@ -17,19 +18,19 @@
 
     <main class="hero-wrap">
         <section class="hero-copy">
-            <span class="eyebrow">SMART PROJECT WORKFLOW</span>
-            <h1>Plan work.<br><span>Unlock progress.</span></h1>
-            <p>FlowForge is a dependency-aware project manager that combines Kanban planning, task priorities, deadlines, activity history, college task imports, dark mode and a live dependency graph.</p>
+            <span class="eyebrow">✳ LESS CHAOS. MORE CLARITY.</span>
+            <h1>Big ideas.<br>Small steps.<br><span>Perfect flow.</span></h1>
+            <p>Your assignments, deadlines, and ambitious side projects. Finally, a place where everything connects.</p>
             <div class="hero-buttons">
-                <a class="primary large" href="signup.html">Start for free</a>
-                <a class="secondary large" href="login.html">Open workspace</a>
+                <a class="primary large" href="signup.html">Build your workspace ↗</a>
+                <a class="secondary large" href="#tour">Take a little tour ↓</a>
             </div>
         </section>
 
         <section class="app-preview" aria-label="FlowForge preview">
             <div class="preview-window">
                 <div class="preview-top">
-                    <strong>Project Overview</strong>
+                    <strong>YOUR NEXT BIG THING · DEMO</strong>
                     <div class="preview-dots"><i></i><i></i><i></i></div>
                 </div>
                 <div class="preview-metrics">
@@ -46,18 +47,19 @@
         </section>
     </main>
 
+    <div class="flow-strip">✳ Thoughtful planning <span>⌘ Connected tasks</span><span>◷ Clearer deadlines</span><span>↗ A calmer mind</span></div>
+    <section class="tour-heading" id="tour"><span class="eyebrow">01 / YOUR SPACE TO MAKE THINGS HAPPEN</span><h2>A clear head starts with<br>a clear <em>workspace.</em></h2><p>From “where do I even start?” to “look how far I’ve come.”</p></section>
     <section class="landing-features">
         <article class="landing-feature"><span>▦</span><h3>Smart Kanban</h3><p>Search, filter, sort and drag tasks through To Do, In Progress and Done.</p></article>
         <article class="landing-feature"><span>⌘</span><h3>Dependency Graph</h3><p>Visualize prerequisite relationships and prevent circular dependencies with DFS.</p></article>
-        <article class="landing-feature"><span>⇩</span><h3>College Task Library</h3><p>Use Fetch, Async/Await and JSON to import student-focused tasks like assignments, exams and project work.</p></article>
+        <article class="landing-feature"><span>⇩</span><h3>Skip the blank page</h3><p>Get a head start with ready-to-import assignments, revision sessions, and project milestones.</p></article>
         <article class="landing-feature"><span>◷</span><h3>Activity & Progress</h3><p>Track deadlines, project completion, blocked tasks and workspace history.</p></article>
     </section>
 
-    <footer class="landing-footer">© 2026 FlowForge · Vanilla HTML, CSS & JavaScript</footer>
+    <section class="connect-section"><div><span class="eyebrow">02 / CONNECT THE DOTS</span><h2>Some things<br>come <em>first.</em></h2><p>Link prerequisites, see what’s holding a task up, and unlock the next step when you’re ready.</p></div><div class="dependency-demo"><span class="eyebrow">TRY A TINY DEPENDENCY DEMO</span><div class="dependency-node"><div><strong>01 — Finish the design</strong><small id="first-status">Ready to work on</small></div><button id="demo-complete" type="button" aria-pressed="false">Complete ✓</button></div><div class="connector">↓</div><div class="dependency-node locked" id="next-task"><div><strong>02 — Build the prototype</strong><small id="next-status" aria-live="polite">Waiting on the design</small></div><span>↗</span></div><p>One small win opens up your next possibility.</p></div></section>
+    <section class="closing"><span class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h2>Less juggling.<br><em>More doing.</em> ↗</h2><a class="primary large" href="signup.html">Find your flow →</a></section>
+    <footer class="landing-footer">FlowForge · A little order for your big ideas. · © 2026</footer>
 
-    <script type="module">
-        import { requireNoAuth } from './js/auth.js';
-        requireNoAuth();
-    </script>
+    <script src="js/landing.js" defer></script>
 </body>
 </html>

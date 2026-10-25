@@ -17,10 +17,15 @@ export function initColumns() {
 }
 
 function handleDragStart(event) {
+    if (event.target.closest('button, select, input')) {
+        event.preventDefault();
+        return;
+    }
     draggedElement = event.currentTarget;
     event.dataTransfer.setData('text/plain', draggedElement.dataset.id);
     event.dataTransfer.effectAllowed = 'move';
-    requestAnimationFrame(() => draggedElement.classList.add('dragging'));
+    const card = draggedElement;
+    requestAnimationFrame(() => { if (draggedElement === card) card.classList.add('dragging'); });
 }
 
 function handleDragEnd() {
@@ -30,6 +35,7 @@ function handleDragEnd() {
 }
 
 function handleDragOver(event) {
+    if (!draggedElement) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     event.currentTarget.classList.add('drag-over');
@@ -49,17 +55,33 @@ function handleDrop(event) {
 
     const taskId = draggedElement.dataset.id;
     const newStatus = column.dataset.status;
+    handleDragEnd();
+    moveTask(taskId, newStatus);
+}
+
+export async function moveTask(taskId, newStatus) {
+    if (!['todo', 'inprogress', 'done'].includes(newStatus)) return false;
     const task = getTask(taskId);
-    if (!task || task.status === newStatus) return;
+    if (!task || task.status === newStatus) return false;
 
     if (newStatus === 'inprogress' || newStatus === 'done') {
         const lockState = getLockState(taskId);
         if (lockState.locked) {
             const deps = lockState.blockingDeps.map(title => `“${title}”`).join(', ');
             showToast(`Blocked: ${task.title} is waiting on ${deps}.`);
-            return;
+            return false;
         }
     }
 
-    updateTaskStatus(taskId, newStatus);
+    try {
+        await updateTaskStatus(taskId, newStatus);
+    } catch (error) {
+        showToast(error.message, 8000);
+        return false;
+    }
+    const labels = { todo: 'To do', inprogress: 'In progress', done: 'Done' };
+    showToast(`Moved “${task.title}” to ${labels[newStatus]}.`);
+    const card = [...document.querySelectorAll('.task-card')].find(item => item.dataset.id === taskId);
+    card?.querySelector('.task-move')?.focus();
+    return true;
 }

@@ -1,12 +1,37 @@
 # FlowForge — Smart College Task & Dependency Manager
 
-FlowForge is a productivity and dependency-based task management application built using Vanilla HTML, CSS, and JavaScript.
+FlowForge is one college project spanning both evaluations: a Vanilla HTML/CSS/JavaScript workspace extended with Node.js, Express and MongoDB.
+
+## Current setup and assessment
+
+- [Setup and MongoDB Atlas](docs/setup-atlas.md)
+- [Evaluation 2 syllabus mapping and demo guide](docs/evaluation-2-assessment.md)
+- [Live integration test evidence](docs/api-integration-tests.md)
+- [Database Studio](docs/database-studio.md) and [Postman collection guide](docs/postman.md)
+
+Use Node 26 (tested with 26.5), run `npm ci`, configure `.env` following the setup
+guide, and run `npm run dev`. Open http://127.0.0.1:3000/ or
+http://127.0.0.1:3000/studio.html. Keep that terminal running and use another tab
+for Git commands. Do not use the old static preview for backend features.
+
+**Current integration boundary:** signup/login, board tasks and recent activity
+use the authenticated MongoDB APIs shared with Database Studio. Create/edit/move/
+delete and College Task Library imports save to the database. Older browser data
+can be previewed and explicitly imported; originals are preserved. Undo restores
+the latest task action for boards up to 500 tasks. Reset and library imports are
+transactional. Each task's Files button supports
+upload, download and removal. Deployment remains unfinished.
+The feature descriptions below include the preserved Evaluation 1 functionality.
 
 The project extends a traditional Kanban board into a smart workspace designed especially for college students. It allows students to organize assignments, exams, labs, coding practice, project work, presentations, and other academic tasks while managing priorities, deadlines, and task dependencies.
 
 The application preserves DFS-based cycle detection and dependency locking while adding a dashboard, College Task Library, activity tracking, filters, weather information, themes, and other productivity features.
 
 ---
+
+## Evaluation 1 handoff
+
+See [the assessment guide](docs/evaluation-1.md) for lecture coverage, demo steps, validation status, and the Evaluation 2 boundary.
 
 ## Features
 
@@ -101,13 +126,13 @@ Instead of displaying random generic tasks, the library contains academic tasks 
 The task library is stored in:
 
 ```text
-student-tasks.json
+data/student-tasks.json
 ```
 
 JavaScript loads the JSON data using the Fetch API and Async/Await:
 
 ```javascript
-const response = await fetch('./student-tasks.json');
+const response = await fetch('./data/student-tasks.json');
 const data = await response.json();
 ```
 
@@ -416,16 +441,21 @@ LocalStorage
 # Project Structure
 
 ```text
-FlowForge_Enhanced/
+FlowForge/
 
 ├── index.html
 ├── login.html
 ├── signup.html
 ├── board.html
-├── student-tasks.json
-│
 ├── css/
 │   └── styles.css
+│
+├── data/
+│   └── student-tasks.json
+│
+├── docs/
+│   ├── FlowForge.pptx
+│   └── screenshots/
 │
 └── js/
     ├── api.js
@@ -453,19 +483,19 @@ Because FlowForge uses ES6 modules and the Fetch API, it should be served throug
 Open a terminal inside the project directory:
 
 ```bash
-cd FlowForge_Enhanced
+cd FlowForge
 ```
 
 Start the server:
 
 ```bash
-python3 -m http.server 3000
+python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
 Then open:
 
 ```text
-http://localhost:3000
+http://127.0.0.1:4173
 ```
 
 in your browser.
@@ -478,7 +508,7 @@ Install the **Live Server** extension and launch `index.html` using Live Server.
 
 # Data Storage
 
-FlowForge currently uses browser LocalStorage instead of a backend database.
+The Evaluation 1 board currently uses browser LocalStorage. Evaluation 2 backend APIs and Database Studio use MongoDB; the board has not yet been switched to those APIs.
 
 This allows the project to demonstrate client-side persistence while remaining within a Vanilla JavaScript architecture.
 
@@ -507,7 +537,7 @@ It is appropriate for:
 - Academic projects
 - Local personal use
 
-It should **not** be considered production-level authentication because there is no secure backend authentication system.
+Signup/login now use the Evaluation 2 bcrypt and JWT cookie API. Existing Evaluation 1 browser accounts are not database accounts; register through the updated signup page. Legacy browser data is preserved but is not automatically imported.
 
 ---
 
@@ -557,10 +587,18 @@ The application can be used both as a classroom JavaScript project and as a pers
 
 # Screenshots
 
-![Landing Page](screenshots/1_landing.png)
-![Login](screenshots/2_login.png)
-![Sign Up](screenshots/3_signup.png)
-![Board](screenshots/4_board.png)
-![Kanban Board](screenshots/5_kanban_board.png)
-![Dependencies](screenshots/6_dependencies.png)
-![Activity](screenshots/7_activity.png)
+These are original Evaluation 1 reference screenshots; they predate the enhanced interface.
+
+![Landing Page](docs/screenshots/1_landing.png)
+![Login](docs/screenshots/2_login.png)
+![Sign Up](docs/screenshots/3_signup.png)
+![Board](docs/screenshots/4_board.png)
+![Kanban Board](docs/screenshots/5_kanban_board.png)
+![Dependencies](docs/screenshots/6_dependencies.png)
+![Activity](docs/screenshots/7_activity.png)
+# Hosting preparation
+
+Netlify support is included; the site is not yet deployed. See
+[Atlas and Netlify steps](docs/netlify-deployment.md). Run `npm run build` and
+`npm run test:hosting` to check the public build and serverless adapter locally.
+The hosting test uses an isolated local MongoDB replica set.

@@ -1,13 +1,10 @@
 import { getTasks, getActivities, getLockState } from './state.js';
+import { daysUntil, deadlineLabel, isOverdue } from './deadlines.js';
+import { calculateMetrics } from './metrics.js';
 
 export function renderDashboard() {
     const tasks = Object.values(getTasks());
-    const total = tasks.length;
-    const todo = tasks.filter(task => task.status === 'todo').length;
-    const inprogress = tasks.filter(task => task.status === 'inprogress').length;
-    const done = tasks.filter(task => task.status === 'done').length;
-    const blocked = tasks.filter(task => getLockState(task.id).locked).length;
-    const progress = total ? Math.round((done / total) * 100) : 0;
+    const { total, todo, inprogress, done, blocked, ready, progress } = calculateMetrics(tasks, getLockState);
 
     setText('metric-total', total);
     setText('metric-todo', todo);
@@ -15,9 +12,17 @@ export function renderDashboard() {
     setText('metric-done', done);
     setText('metric-blocked', blocked);
     setText('progress-percent', `${progress}%`);
+    setText('progress-summary', total
+        ? `${done} of ${total} tasks completed · ${ready} ready to start · ${blocked} waiting on prerequisites`
+        : 'Create your first task to start tracking progress.');
 
     const bar = document.getElementById('progress-bar-fill');
     if (bar) bar.style.width = `${progress}%`;
+    const progressTrack = document.getElementById('dashboard-progress');
+    if (progressTrack) {
+        progressTrack.setAttribute('aria-valuenow', String(progress));
+        progressTrack.setAttribute('aria-valuetext', `${done} of ${total} tasks completed`);
+    }
 
     renderUpcoming(tasks);
     renderRecentActivity();
@@ -28,28 +33,59 @@ function renderUpcoming(tasks) {
     if (!container) return;
 
     const upcoming = tasks
-        .filter(task => task.dueDate && task.status !== 'done')
-        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-        .slice(0, 5);
+        .filter(task => daysUntil(task.dueDate) !== null && task.status !== 'done')
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.title.localeCompare(b.title));
 
     if (!upcoming.length) {
         container.innerHTML = '<div class="empty-panel">No upcoming deadlines.</div>';
         return;
     }
 
-    container.innerHTML = upcoming.map(task => {
-        const date = new Date(`${task.dueDate}T00:00:00`);
-        const label = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
-        return `
-            <div class="deadline-row">
-                <div>
-                    <strong>${escapeHtml(task.title)}</strong>
-                    <span>${escapeHtml(task.category || 'General')}</span>
-                </div>
-                <time>${label}</time>
-            </div>
-        `;
-    }).join('');
+    container.replaceChildren();
+    const now = new Date();
+    const groups = [
+        ['Needs attention', upcoming.filter(task => isOverdue(task, now))],
+        ['Today & coming up', upcoming.filter(task => !isOverdue(task, now))]
+    ];
+    for (const [label, items] of groups) {
+        if (!items.length) continue;
+        const heading = document.createElement('h4');
+        heading.className = 'deadline-group-heading';
+        heading.textContent = `${label} · ${items.length}`;
+        container.appendChild(heading);
+        items.slice(0, 5).forEach(task => {
+            const row = document.createElement('div');
+            row.className = 'deadline-row';
+            const copy = document.createElement('div');
+            copy.className = 'deadline-copy';
+            const title = document.createElement('strong');
+            title.textContent = task.title;
+            const category = document.createElement('span');
+            category.textContent = task.category || 'General';
+            copy.append(title, category);
+            const details = document.createElement('div');
+            details.className = 'deadline-details';
+            const time = document.createElement('time');
+            time.dateTime = task.dueDate;
+            time.textContent = deadlineLabel(task, now);
+            if (isOverdue(task, now)) time.className = 'deadline-overdue';
+            const edit = document.createElement('button');
+            edit.type = 'button';
+            edit.className = 'text-button';
+            edit.textContent = 'Edit ↗';
+            edit.setAttribute('aria-label', `Edit deadline for ${task.title}`);
+            edit.addEventListener('click', () => window.openTaskModal(task.id));
+            details.append(time, edit);
+            row.append(copy, details);
+            container.appendChild(row);
+        });
+        if (items.length > 5) {
+            const more = document.createElement('p');
+            more.className = 'deadline-overflow';
+            more.textContent = `${items.length - 5} more in this group. Open your board to see all tasks.`;
+            container.appendChild(more);
+        }
+    }
 }
 
 function renderRecentActivity() {
@@ -71,7 +107,39 @@ export function renderActivityView() {
         container.innerHTML = '<div class="empty-panel large">No activity yet. Create or move a task to begin.</div>';
         return;
     }
-    container.innerHTML = activities.map(activity => activityMarkup(activity, true)).join('');
+    container.replaceChildren();
+    const summary = document.createElement('p');
+    summary.className = 'timeline-summary';
+    summary.textContent = `${activities.length} recent events · Showing the latest 50 database events.`;
+    container.appendChild(summary);
+    const groups = new Map();
+    [...activities].sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)).forEach(activity => {
+        const date = new Date(activity.createdAt);
+        const valid = !Number.isNaN(date.getTime());
+        const label = valid ? new Intl.DateTimeFormat('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(date) : 'Unknown date';
+        if (!groups.has(label)) groups.set(label, []);
+        groups.get(label).push(activity);
+    });
+    for (const [label, events] of groups) {
+        const section = document.createElement('section');
+        section.className = 'timeline-group';
+        const heading = document.createElement('h3');
+        heading.textContent = label;
+        const list = document.createElement('ol');
+        list.className = 'timeline-events';
+        events.forEach(activity => {
+            const item = document.createElement('li');
+            item.innerHTML = activityMarkup(activity);
+            const labels = {create:'Created',edit:'Edited',move:'Moved',delete:'Deleted',import:'Imported'};
+            const badge = document.createElement('span');
+            badge.className = 'timeline-type';
+            badge.textContent = labels[activity.type] || 'Updated';
+            item.querySelector('.activity-copy').prepend(badge);
+            list.appendChild(item);
+        });
+        section.append(heading, list);
+        container.appendChild(section);
+    }
 }
 
 function activityMarkup(activity, full = false) {
@@ -83,12 +151,13 @@ function activityMarkup(activity, full = false) {
         import: '⇩'
     }[activity.type] || '•';
 
-    const time = new Intl.DateTimeFormat('en-IN', {
+    const date = new Date(activity.createdAt);
+    const time = Number.isNaN(date.getTime()) ? 'Time unavailable' : new Intl.DateTimeFormat('en-IN', {
         day: full ? 'numeric' : undefined,
         month: full ? 'short' : undefined,
         hour: 'numeric',
         minute: '2-digit'
-    }).format(new Date(activity.createdAt));
+    }).format(date);
 
     return `
         <div class="activity-row">
