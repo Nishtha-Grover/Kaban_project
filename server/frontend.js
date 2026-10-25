@@ -1,11 +1,11 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 
-// Resolve paths from this module, regardless of the terminal's working folder.
-const frontendRoot = fileURLToPath(new URL('../', import.meta.url));
-const sendOptions = { root: frontendRoot, dotfiles: 'deny', maxAge: 0 };
-
 export function mountFrontend(app) {
+    // Netlify serves static files separately and bundles this module as CommonJS.
+    // Resolve the local-only path only when the standalone server mounts pages.
+    const frontendRoot = fileURLToPath(new URL('../', import.meta.url));
+    const sendOptions = { root: frontendRoot, dotfiles: 'deny', maxAge: 0 };
     // Explicit entry points: never expose the repository root with express.static.
     const pages = ['index.html', 'login.html', 'signup.html', 'board.html', 'studio.html'];
     for (const page of pages) {
