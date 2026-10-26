@@ -54,7 +54,19 @@ collection. The checked-in collection contains no credentials or tokens.
 
 ## Validation status
 
-The JSON structure, request variables and embedded script syntax are checked
-locally. The requests have not yet been executed against a live database in
-Postman. Authentication/CRUD and dependency/upload integration tests are the next
-two planned stages. Browser-to-backend integration remains separate pending work.
+On 26 October 2026, the collection was imported into the Postman desktop app
+and run against a separate Atlas test database, `flowforge_postman_test`, through
+the local server at `127.0.0.1:3100`. The 24 requests in folders 01, 02, 03 and
+05 completed with **34 passing assertions, 0 failed tests and 0 runner errors**.
+This covered authentication, task CRUD, dependency rules, database seeding,
+document browsing, populate, aggregation, indexes, JSON export and logout.
+Expected 400, 409 and 401 responses passed their matching assertions. The
+runner's “Keep variable values” option was off, so generated test credentials
+were not retained in the imported collection after the run.
+
+The four optional file-upload requests in folder 04 were excluded from this
+Postman run. Postman's macOS file picker showed its Open button disabled for
+`postman/fixtures/notes.txt`, so the file could not be attached in the app.
+The upload flow therefore remains **unverified in Postman**. This run exercised
+the local server and isolated Atlas database; it was not a test of the public
+Netlify deployment.
