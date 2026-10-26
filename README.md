@@ -2,6 +2,10 @@
 
 FlowForge is one college project spanning both evaluations: a Vanilla HTML/CSS/JavaScript workspace extended with Node.js, Express and MongoDB.
 
+### Opening from VS Code
+
+VS Code's **Go Live** button opens the published FlowForge website in your browser. Live Server serves static files only, so the project redirects its pages to the hosted app where login, tasks and Database Studio can reach the MongoDB API. To preview changes to your local files with the full backend, configure a private `.env`, run `npm ci` and `npm run dev`, then open `http://127.0.0.1:3000/`. Do not upload `.env` or put credentials in source control.
+
 ## Current setup and assessment
 
 - [Setup and MongoDB Atlas](docs/setup-atlas.md)

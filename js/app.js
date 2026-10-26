@@ -48,6 +48,15 @@ import { initBrowserMigration } from './browserMigration.js';
 
 let activeView = 'dashboard';
 let apiTasks = [];
+function showStartupError(message) {
+    document.getElementById('workspace-loading-message').textContent = message;
+    document.getElementById('workspace-retry').hidden = false;
+}
+
+function revealWorkspace() {
+    document.getElementById('workspace-loading').hidden = true;
+    document.body.classList.remove('workspace-pending');
+}
 window.addEventListener('error', event => {
     if (event.error?.name === 'TaskDependencyError') {
         event.preventDefault();
@@ -66,18 +75,18 @@ window.addEventListener('error', event => {
 document.addEventListener('DOMContentLoaded', async () => {
 
     initTheme();
+    document.getElementById('workspace-retry').addEventListener('click', () => window.location.reload());
 
     try { if (!await requireAuth()) return; }
     catch (error) {
-        const notice = document.getElementById('storage-notice');
-        notice.textContent = `${error.message} Reload this page to retry.`; notice.hidden = false;
+        showStartupError(error.message);
         return;
     }
 
     const username = getSessionUsername();
 
     document.querySelectorAll('[data-current-user]').forEach(el => {
-        el.textContent = username || 'User';
+        el.textContent = el.classList.contains('avatar') ? username.charAt(0).toUpperCase() : username;
     });
 
 
@@ -99,13 +108,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try { await loadState(); }
     catch (error) {
-        const notice = document.getElementById('storage-notice');
-        notice.textContent = error.message + ' Reload this page to retry.';
-        notice.hidden = false;
+        showStartupError(error.message);
+        return;
     }
 
     renderEverything();
     switchView('dashboard');
+    revealWorkspace();
     // Keep deadline labels current when the workspace stays open overnight.
     let calendarDay = new Date().toDateString();
     const refreshDeadlines = () => {

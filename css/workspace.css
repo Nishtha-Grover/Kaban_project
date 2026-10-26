@@ -1,4 +1,13 @@
 /* Workspace shell: uses the shared palette in both light and dark modes. */
+.workspace-pending .app-shell { visibility: hidden; }
+.workspace-loading { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 28px; background: var(--bg); color: var(--text); }
+.workspace-loading[hidden], .workspace-loading button[hidden] { display: none; }
+.workspace-loading-mark { display: grid; place-items: center; width: 50px; height: 50px; flex: none; border-radius: 15px; background: var(--primary); color: var(--on-primary); font: 700 26px var(--font-heading); animation: workspace-breathe 1.8s ease-in-out infinite; }
+.workspace-loading strong { display: block; font: 700 19px var(--font-heading); }
+.workspace-loading p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.workspace-loading button { margin-top: 18px; }
+@keyframes workspace-breathe { 50% { transform: scale(1.08); opacity: .75; } }
+@media (prefers-reduced-motion: reduce) { .workspace-loading-mark { animation: none; } }
 .timeline-summary { color: var(--muted); font-size: 11px; margin: 0 0 28px; }
 .timeline-group h3 { font-size: 13px; font-weight: 600; margin: 26px 0 18px; }
 .timeline-events { list-style: none; padding: 0 0 0 18px; margin: 0 0 0 14px; border-left: 1px solid var(--border); }

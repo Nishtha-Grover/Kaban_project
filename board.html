@@ -4,13 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlowForge Workspace</title>
+    <script src="js/goLiveRedirect.js"></script>
+    <script src="js/themeBootstrap.js"></script>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/workspace.css">
     <link rel="stylesheet" href="css/board.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/attachments.css">
 </head>
-<body class="app-body">
+<body class="app-body workspace-pending">
+    <div class="workspace-loading" id="workspace-loading" role="status" aria-live="polite">
+        <span class="workspace-loading-mark" aria-hidden="true">F</span>
+        <div>
+            <strong>Opening your workspace</strong>
+            <p id="workspace-loading-message">Getting your name and tasks ready…</p>
+            <button type="button" class="secondary" id="workspace-retry" hidden>Try again</button>
+        </div>
+    </div>
     <div class="app-shell">
         <aside class="sidebar" id="workspace-sidebar">
             <a class="brand" href="index.html">
