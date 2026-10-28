@@ -9,7 +9,7 @@ export class ApiError extends Error {
 }
 
 export async function requestJson(url, {
-    method = 'GET', json, headers = {}, timeoutMs = 10000,
+    method = 'GET', json, headers = {}, timeoutMs = 30000,
     label = 'Request'
 } = {}) {
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {

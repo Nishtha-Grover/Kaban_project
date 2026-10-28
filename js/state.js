@@ -35,6 +35,18 @@ async function readBoard(attempt = 0) {
     locks = computeLockStates(state.tasks);
     index = buildDependencyIndex(state.tasks);
 }
+// Retry only reads: retrying a write after a lost response could duplicate it.
+async function syncBoard() {
+    for (let attempt = 0; ; attempt++) {
+        try { await readBoard(); return; }
+        catch (error) {
+            const transient = ['NETWORK', 'TIMEOUT', 'PARSE'].includes(error.code)
+                || [429, 500, 502, 503, 504].includes(error.status);
+            if (!transient || attempt === 2) throw error;
+            await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+        }
+    }
+}
 export async function loadState() {
     if (busy) throw new Error('Wait for the current save to finish.');
     busy = true; ready = false;
@@ -42,26 +54,45 @@ export async function loadState() {
     owner = getWorkspaceIdentity();
     state = { tasks: Object.create(null), activities: [] };
     locks = {}; index = buildDependencyIndex({});
-    try { assertOwner(); await readBoard(); ready = true; }
+    try { assertOwner(); await syncBoard(); ready = true; }
     finally { busy = false; notify(); }
 }
 async function mutate(action) {
     assertOwner();
-    if (!ready) throw new Error('Reload the board before editing. A previous request may have saved on the server.');
     if (busy) throw new Error('A task is being saved. Wait a moment before changing another task.');
     busy = true;
+    let saved = false, result;
     try {
-        const result = await action();
+        // Recover an interrupted synchronization before accepting another edit.
+        if (!ready) { await syncBoard(); ready = true; }
+        result = await action();
+        saved = true;
         assertOwner();
-        await readBoard();
-        notify();
-        return result;
+        await syncBoard();
+        ready = true;
     } catch (error) {
-        // Do not retry writes: a lost response may follow a successful commit.
         ready = false;
-        error.message += ' Reload the board to check its latest saved state before trying again.';
-        throw error;
-    } finally { busy = false; }
+        try {
+            await syncBoard();
+            ready = true;
+        } catch {
+            error.message = saved
+                ? 'Your change was saved, but the connection interrupted the board update. Try again when the connection returns.'
+                : 'Could not confirm this change. The board will synchronize before your next edit; check its saved state before repeating the action.';
+            throw error;
+        }
+        // A confirmed save followed by a failed read is still a successful save.
+        if (!saved) {
+            if (!error.status || error.status >= 500) {
+                error.message = 'The save response was interrupted. The latest board is now synchronized; check whether your change appears before repeating it.';
+            }
+            throw error;
+        }
+    } finally {
+        busy = false;
+        notify();
+    }
+    return result;
 }
 function taskAt(id) {
     const task = state.tasks[id];

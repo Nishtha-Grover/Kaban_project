@@ -109,8 +109,8 @@ test('board forms and controls save to the real database', { timeout: 90000 }, a
     await t.test('lost write response requires reconciliation without duplicate retry', async () => {
         loseWriteResponse = true;
         await assert.rejects(state.addTask({ title: 'Saved despite lost response' }));
-        await assert.rejects(state.addTask({ title: 'Saved despite lost response' }), /Reload/);
-        await state.loadState();
+        // Reconciliation is automatic; the committed task is already visible.
+        await state.addTask({ title: 'Next edit without reloading' });
         assert.equal(Object.values(state.getTasks()).filter(task => task.title === 'Saved despite lost response').length, 1);
     });
     await t.test('database undo survives reload and reset can restore task links', async () => {
