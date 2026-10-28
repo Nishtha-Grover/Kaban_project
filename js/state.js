@@ -47,6 +47,10 @@ async function syncBoard() {
         }
     }
 }
+function interruptedWrite(error) {
+    return ['NETWORK', 'TIMEOUT', 'PARSE'].includes(error.code)
+        || [500, 502, 503, 504].includes(error.status);
+}
 export async function loadState() {
     if (busy) throw new Error('Wait for the current save to finish.');
     busy = true; ready = false;
@@ -76,14 +80,17 @@ async function mutate(action) {
             await syncBoard();
             ready = true;
         } catch {
-            error.message = saved
-                ? 'Your change was saved, but the connection interrupted the board update. Try again when the connection returns.'
-                : 'Could not confirm this change. The board will synchronize before your next edit; check its saved state before repeating the action.';
+            if (saved) {
+                error.code = 'SYNC_AFTER_SAVE';
+                error.message = 'Your change was saved, but the board could not refresh. It will synchronize before your next edit.';
+            } else {
+                error.message = 'Could not confirm this change. The board will synchronize before your next edit; check its saved state before repeating the action.';
+            }
             throw error;
         }
         // A confirmed save followed by a failed read is still a successful save.
         if (!saved) {
-            if (!error.status || error.status >= 500) {
+            if (['NETWORK', 'TIMEOUT', 'PARSE'].includes(error.code) || [502, 504].includes(error.status)) {
                 error.message = 'The save response was interrupted. The latest board is now synchronized; check whether your change appears before repeating it.';
             }
             throw error;
@@ -108,9 +115,40 @@ export function getTaskDependencies(id) {
         dependents: [...(index.dependents.get(id) || [])], missing: [...(index.missing.get(id) || [])] };
 }
 export async function addTask(data) { return mutate(async () => (await createDatabaseTask(data)).id); }
-export async function updateTask(id, data) { return mutate(() => updateDatabaseTask(taskAt(id), data)); }
+function taskMatches(id, changes) {
+    const task = state.tasks[id];
+    return task && Object.entries(changes).every(([key, value]) =>
+        JSON.stringify(task[key]) === JSON.stringify(value));
+}
+export async function updateTask(id, data) {
+    const save = () => mutate(() => updateDatabaseTask(taskAt(id), data));
+    try { return await save(); }
+    catch (error) {
+        // After a lost reply, the server may already have saved the update.
+        if (taskMatches(id, data)) return taskAt(id);
+        if (!interruptedWrite(error)) throw error;
+        // A confirmed failed write is safe to retry with the refreshed version.
+        try { return await save(); }
+        catch (retryError) {
+            if (taskMatches(id, data)) return taskAt(id);
+            throw retryError;
+        }
+    }
+}
 export async function updateTaskStatus(id, status) { return updateTask(id, { status }); }
-export async function deleteTask(id) { return mutate(() => deleteDatabaseTask(taskAt(id))); }
+export async function deleteTask(id) {
+    const remove = () => mutate(() => deleteDatabaseTask(taskAt(id)));
+    try { await remove(); }
+    catch (error) {
+        if (!state.tasks[id]) return;
+        if (!interruptedWrite(error)) throw error;
+        try { await remove(); }
+        catch (retryError) {
+            if (!state.tasks[id]) return;
+            throw retryError;
+        }
+    }
+}
 export async function importTasks(items) {
     return mutate(async () => {
         const fields = ['title', 'description', 'priority', 'category', 'dueDate', 'tags'];

@@ -26,7 +26,11 @@ test('hosted adapter preserves authentication, tasks and binary attachments', { 
     const cookie = header.split(';')[0];
     const created = await call('/api/tasks', 'POST', { title: 'Hosted task' }, cookie);
     assert.equal(created.statusCode, 201);
-    const id = JSON.parse(created.body).task.id;
+    const task = JSON.parse(created.body).task;
+    const id = task.id;
+    const moved = await call(`/api/tasks/${id}`, 'PATCH', { status: 'done', version: task.version }, cookie);
+    assert.equal(moved.statusCode, 200, moved.body);
+    assert.equal(JSON.parse(moved.body).task.status, 'done');
     const prefix = `/api/tasks/${id}/attachments`;
     const boundary = 'flowforge-test-boundary';
     function multipart(data) { return Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="notes.txt"\r\nContent-Type: text/plain\r\n\r\n`), data, Buffer.from(`\r\n--${boundary}--\r\n`)]); }
